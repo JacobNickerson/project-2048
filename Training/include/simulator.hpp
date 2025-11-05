@@ -5,23 +5,18 @@
 
 #include "rng.hpp"
 #include "look_up_table.hpp"
+#include "shared_memory_structures.hpp"
 
 using Move = uint8_t;
 
-struct Message { 
-    uint8_t id;
-    uint16_t board[4];
-    Move valid_moves;
-};
-
 class Simulator {
     public:
-        // Create a Game object and initializes the board to a valid 2048 starting state
-        Simulator(uint8_t id, uint32_t rng_seed, const std::array<RowEntry,MOVE_COUNT>& MOVE_TABLE);
+        // Create a Simulator object and initializes the board to a valid 2048 starting state
+        Simulator(uint8_t id, uint32_t rng_seed, const RowEntry* MOVE_TABLE);
         // Returns a bit-packed char representing available moves, from LSB to MSB -> LEFT, RIGHT, UP, DOWN, NO MOVES AVAILABLE
         Move getValidMoves();
         // Accepts a bit-packed char representing a move, it is assumed that the input is valid ie exactly one legal move
-        // Returns valid moves for new board state
+        // Updates the current moveset to represent the new board state and returns the new moveset
         Move makeMove(Move move);
         // Returns the score of the current board 
         uint32_t getScore();
@@ -37,7 +32,7 @@ class Simulator {
         Move current_moves;
         std::array<uint16_t,4> board; // represented as four bit packed rows, each tile is 4 bits representing the log2 value of the tile
         XorShift32 rng;
-        const std::array<RowEntry,65536>& MOVE_TABLE;
+        const RowEntry* MOVE_TABLE = nullptr;
         uint32_t score{0};
         bool game_ended{false};
 

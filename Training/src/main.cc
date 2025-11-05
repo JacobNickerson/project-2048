@@ -1,20 +1,34 @@
-#include <boost/interprocess/managed_shared_memory.hpp>
-#include <iostream>
-#include <bitset>
-#include "simulator.hpp"
-#include "look_up_table.hpp"
+#include "manager.hpp"
 
-using namespace boost::interprocess;
+#include <chrono>
+#include <csignal>
+#include <thread>
 
-// static std::array<RowEntry, MOVE_COUNT> MOVE_TABLE = generateLookupTable();
+std::atomic<bool> simulation_running = true;
+
+void signal_handler(int signum) {
+    std::cout << "DID YOU HANDLE IT!?\n";
+    simulation_running = false;
+}
 
 int main() {
-	// shared_memory_object::remove("proj2048shm"); // just in case of leaks
-	// managed_shared_memory shm(create_only, "proj2048shm", 1 << 20);
-	// shared_memory_object::remove("proj2048shm");
-	// Game testGame(124986745, MOVE_TABLE);
-	uint16_t test = 0x2000;
-	std::cout << calculateScore(test) << std::endl;
+    std::signal(SIGINT, signal_handler);
+    std::signal(SIGTERM, signal_handler);
+    std::signal(SIGQUIT, signal_handler);
 
-	return 0;
+	bip::shared_memory_object::remove(SHARED_MEMORY_NAME); // in case of hanging shared memory
+
+    SimulationManager manager(6, true);
+    manager.populateSharedMemory();
+    manager.spawnSimulators();
+    manager.startSimulation();
+    while (simulation_running.load()) { 
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        manager.restartDeadSimulators();
+        std::cout << "\r SIMULATING\n";
+    }
+    std::cout << "KILL THEM ANAKIN\n";
+    manager.killSimulators();
+
+    return 0;
 }

@@ -61,6 +61,7 @@ constexpr uint32_t calculateScore(uint16_t row) {
          + (((row&0xF000) == 0) ? 0 : ((1 << ((row & 0xF000) >> 12))));
 } 
 
+//constexpr std::array<RowEntry, MOVE_COUNT> generateLookupTable() {
 constexpr std::array<RowEntry, MOVE_COUNT> generateLookupTable() {
     // Too many loop iterations to be done at compile time
     std::array<RowEntry, MOVE_COUNT> lookup_table;

@@ -1,6 +1,8 @@
 #include "simulator.hpp"
+#include "look_up_table.hpp"
 #include <cstdint>
 #include <cstring>
+#include <exception>
 
 constexpr uint8_t LEFT  = 1;
 constexpr uint8_t RIGHT = 2;
@@ -8,7 +10,7 @@ constexpr uint8_t UP    = 4;
 constexpr uint8_t DOWN  = 8;
 constexpr uint8_t NOMOVE = 16;
 
-Simulator::Simulator(uint8_t id, uint32_t rng_seed, const std::array<RowEntry,MOVE_COUNT>& MOVE_TABLE) : id(id), rng(rng_seed), MOVE_TABLE(MOVE_TABLE) {
+Simulator::Simulator(uint8_t id, uint32_t rng_seed, const RowEntry* MOVE_TABLE) : id(id), rng(rng_seed), MOVE_TABLE(MOVE_TABLE) {
     init();
     return;
 }
@@ -22,6 +24,7 @@ Move Simulator::makeMove(Move move) {
     }
     generateRandomTile();
     current_moves = getValidMoves();
+    return current_moves;
 }
 uint32_t Simulator::getScore() {
     return score;
