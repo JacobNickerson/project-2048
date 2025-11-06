@@ -1,10 +1,11 @@
 #pragma once
 
-#include "look_up_table.hpp"
-#include "manager.hpp"
-#include "shared_memory_structures.hpp"
 #include <boost/interprocess/interprocess_fwd.hpp>
+#include <boost/interprocess/managed_shared_memory.hpp>
 #include <cstdint>
+#include "look_up_table.hpp"
+#include "shared_memory_structures.hpp"
+#include "simulator.hpp"
 
 class Worker {
     public:

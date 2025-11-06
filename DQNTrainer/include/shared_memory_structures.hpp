@@ -4,6 +4,7 @@
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/process/v1.hpp>
 #include <cstdint>
+#include <iostream>
 
 namespace bip = boost::interprocess;
 
@@ -25,10 +26,12 @@ struct ProcessControlFlags {
    bool workers_ready = false;
    bool moves_ready = false;
    bool messages_ready = false;
+   
+   std::atomic<uint8_t> workers_waiting = process_count;
+   std::atomic<uint8_t> remaining_messages = process_count;
+   std::atomic<uint8_t> remaining_moves = process_count;
 
-   uint8_t workers_waiting = process_count; 
-   uint8_t remaining_messages = process_count;
-   uint8_t remaining_moves = process_count;
+   int test = 10;
 };
 
 // Compiler SPECIFIC pragma to enforce no byte padding, ensures packed data

@@ -3,6 +3,7 @@
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <iostream>
+#include <string>
 
 #include "look_up_table.hpp"
 #include "shared_memory_structures.hpp"
@@ -18,21 +19,15 @@ SimulationManager::~SimulationManager() {
 }
 
 void SimulationManager::spawnSimulators() {
-	if (!initialized_shm_structures) {
-		if (logging) {
-			std::cout << "error: cannot spawn simulators because shared memory structures are not initialized\n";
-		}
-		return;
-	}
 	children.reserve(process_count);
 	for (int i{0}; i < process_count; ++i) {
-		std::vector<std::string> process_args = {"./build/worker.o", std::to_string(i)};
+		// TODO: Make this more robust than a hardcoded path
+		std::vector<std::string> process_args = {"./DQNWorker", std::to_string(i)};
 		children.emplace_back(bp::child(process_args));
 	}
 	if (logging) {
-		std::cout << "Created " << process_count << " workers\n";
+		std::cout << "Created " << std::to_string(process_count) << " workers\n";
 	}
-	workers_spawned = true;
 }
 
 void SimulationManager::killSimulators() {
@@ -48,7 +43,8 @@ void SimulationManager::restartDeadSimulators() {
 	for (int i{0}; i < children.size(); ++i) {
 		auto& child = children[i];
 		if (!child.running()) {
-			std::vector<std::string> process_args = {"./build/run_worker.o", std::to_string(i)};
+			// TODO: Make this more robust than a hardcoded path
+			std::vector<std::string> process_args = {"./DQNWorker", std::to_string(i)};
 			child = bp::child(process_args); 
 			if (logging) {
 				std::cout << "Restarted a dead worker\n";
@@ -58,22 +54,17 @@ void SimulationManager::restartDeadSimulators() {
 }
 
 bool SimulationManager::startSimulation() {
-	if (!workers_spawned) {
-		if (logging) {
-			std::cout << "Cannot start simulation, workers not spawned\n";
-		}
-		return false;
-	}
+	populateSharedMemory();
+	// don't let the kids go crazy til we're done
 	bip::scoped_lock<bip::interprocess_mutex> lock(control_flags->mtx);
+	spawnSimulators();
 	control_flags->manager_ready = true;
 	if (logging) {
-		std::cout << "Sent a signal to simulators\n";
-	}
-	if (logging) {
-		std::cout << "Waiting for signal from simulators\n";
+		std::cout << "Sent ready signal to simulators\n";
 	}
 
 	while (!control_flags->workers_ready) {
+		std::cout << "Manager waiting for workers to be ready...\n";
 		control_flags->cond.wait(lock, [this]{ return control_flags->workers_ready; });
 	}
 	if (logging) {
@@ -92,5 +83,4 @@ void SimulationManager::populateSharedMemory() {
 	if (logging) {
 		std::cout << "Initialized shared memory structures\n";
 	}
-	initialized_shm_structures = true;
 }

@@ -1,13 +1,17 @@
-#include "look_up_table.hpp"
-#include "shared_memory_structures.hpp"
+#include <random>
 #include "worker.hpp"
 
 namespace bip = boost::interprocess;
+
+bool logging = false;
 
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "error: worker requires an id\n";
         return 1;
+    }
+    if (argc >= 3 && argv[3] == "--verbose") {
+        logging = true;
     }
 
     auto shm = bip::managed_shared_memory(bip::open_only, SHARED_MEMORY_NAME);
@@ -33,10 +37,15 @@ int main(int argc, char** argv) {
         std::cerr << "Move lookup table not found in worker " << sim_id << '\n';
         return 1;
     }
-    // TODO: Replace 1 with rng seeding
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint32_t> dist(1,UINT32_MAX);
+    if (logging) {
+        std::cout << "Generated random number: " << dist(gen) << std::endl;
+    }
     Worker worker(
         sim_id,
-        1,
+        dist(gen),
         pcf.first,
         ma.first,
         mva.first,

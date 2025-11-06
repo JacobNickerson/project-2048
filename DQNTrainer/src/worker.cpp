@@ -18,14 +18,18 @@ Worker::Worker(
     simulator(id,1,move_lookup_table),
     control_flags(control_flags),
     message_array(message_array),
-    DQN_move_array(DQN_move_array) {}
+    DQN_move_array(DQN_move_array) {
+        bip::scoped_lock<bip::interprocess_mutex> lock(control_flags->mtx);
+        while (!control_flags->manager_ready) {
+            control_flags->cond.wait(lock, [control_flags]{ return control_flags->workers_ready; });
+        }
+    }
         
 
 bool Worker::sendReady() {
     // some type of error checking???
     bip::scoped_lock<bip::interprocess_mutex> lock(control_flags->mtx);
     if (--control_flags->workers_waiting == 0) {
-        std::cout << "Sent ready, unready count: " << std::to_string(control_flags->workers_waiting) << std::endl;
         control_flags->workers_ready = true;
         control_flags->cond.notify_all();
     } 
@@ -37,10 +41,13 @@ void Worker::simulate() {
     while (!control_flags->workers_ready) {
         control_flags->cond.wait(lock, [this] { return control_flags->workers_ready; });
     }
+    lock.unlock();
     std::cout << "SENDING IT!\n";
-    while (true) {
+    volatile bool dumb = true;
+    while (dumb) {
+        continue;
         message_array[id] = simulator.generateMessage();
-        lock.lock();
+
         if (--control_flags->remaining_messages == 0) { // ASSUME THIS IS RESET BY DQN MODEL
             control_flags->messages_ready = true;
             control_flags->cond.notify_all();
