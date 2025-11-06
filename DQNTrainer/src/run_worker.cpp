@@ -1,4 +1,6 @@
 #include <random>
+#include "lock_free_queue.hpp"
+#include "shared_memory_structures.hpp"
 #include "worker.hpp"
 
 namespace bip = boost::interprocess;
@@ -22,12 +24,13 @@ int main(int argc, char** argv) {
         std::cerr << "Process control flags not found in worker " << sim_id << '\n';
         return 1;
     }
-    auto ma = shm.find<Message>(MESSAGE_ARRAY_NAME);
-    if (!ma.first) {
+    auto mb = shm.find<Message>(MESSAGE_QUEUE_BUFFER_NAME);
+    auto mq = shm.find<LockFreeQueue<Message>>(MESSAGE_QUEUE_NAME);
+    if (!mq.first) {
         std::cerr << "Message array not found in worker " << sim_id << '\n';
         return 1;
     }
-    auto mva = shm.find<Move>(DQN_MOVE_ARRAY_NAME);
+    auto mva = shm.find<ResponseCell>(DQN_MOVE_ARRAY_NAME);
     if (!mva.first) {
         std::cerr << "DQN move array not found in worker " << sim_id << '\n';
         return 1;
@@ -47,7 +50,8 @@ int main(int argc, char** argv) {
         sim_id,
         dist(gen),
         pcf.first,
-        ma.first,
+        mb.first,
+        mq.first,
         mva.first,
         mlut.first
     );

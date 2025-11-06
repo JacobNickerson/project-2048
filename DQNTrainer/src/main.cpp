@@ -17,7 +17,7 @@ int main() {
 
 	bip::shared_memory_object::remove(SHARED_MEMORY_NAME); // in case of hanging shared memory
 
-    SimulationManager manager(6, false);
+    SimulationManager manager(6, true);
     manager.startSimulation();
     while (simulation_running.load()) { 
         manager.restartDeadSimulators();

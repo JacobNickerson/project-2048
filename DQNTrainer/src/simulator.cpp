@@ -2,7 +2,6 @@
 #include "look_up_table.hpp"
 #include <cstdint>
 #include <cstring>
-#include <exception>
 
 constexpr uint8_t LEFT  = 1;
 constexpr uint8_t RIGHT = 2;
@@ -21,12 +20,13 @@ Move Simulator::makeMove(Move move) {
         case UP:     { moveUp();    break; }
         case DOWN:   { moveDown();  break; }
         case NOMOVE: { game_ended = true; return NOMOVE; }
+        default: { game_ended = true; return NOMOVE; }
     }
     generateRandomTile();
     current_moves = getValidMoves();
     return current_moves;
 }
-uint32_t Simulator::getScore() {
+uint32_t Simulator::getScore() const {
     return score;
 }
 
@@ -87,15 +87,16 @@ void Simulator::init() {
     memset(board.data(), 0, sizeof(board));
     generateRandomTile();
     generateRandomTile();
+    current_moves = getValidMoves();
 }
-uint64_t Simulator::convertBoardToPacked() {
+uint64_t Simulator::convertBoardToPacked() const {
     uint64_t converted = 0;
     for (int i{0}; i < 4; ++i) {
         converted |= ((uint64_t)board[i] << 16*(3-i));
     }
     return converted;
 }
-std::array<uint8_t,16> Simulator::convertBoardToUnpacked() {
+std::array<uint8_t,16> Simulator::convertBoardToUnpacked() const {
     std::array<uint8_t,16> converted;
     memset(converted.data(), 0, sizeof(converted));
     for (int i{0}; i < 4; ++i) {
@@ -110,7 +111,7 @@ std::array<uint8_t,16> Simulator::convertBoardToUnpacked() {
     }
     return converted;
 }
-bool Simulator::rowCanMoveLeft(uint16_t row) {
+bool Simulator::rowCanMoveLeft(uint16_t row) const {
     uint8_t t0 = (row >> 0) & 0xF;
     uint8_t t1 = (row >> 4) & 0xF;
     uint8_t t2 = (row >> 8) & 0xF;
@@ -123,7 +124,7 @@ bool Simulator::rowCanMoveLeft(uint16_t row) {
             (t1 && t1 == t2) |
             (t2 && t2 == t3));
 }
-Move Simulator::getValidMoves() {
+Move Simulator::getValidMoves() const {
     Move valid_moves = 0;
     for (const auto& row : board) {
         // left
@@ -141,10 +142,10 @@ Move Simulator::getValidMoves() {
     // return moves or no moves flag if no available moves
     return valid_moves + ((valid_moves == 0) * 0b00010000);
 } 
-Message Simulator::generateMessage() {
+Message Simulator::generateMessage() const {
     return { 
         id,
-        { board[0], board[1], board[2], board[3] },
+        convertBoardToPacked(),
         current_moves
     };
 }

@@ -4,13 +4,13 @@
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/process/v1.hpp>
 #include <cstdint>
-#include <iostream>
 
 namespace bip = boost::interprocess;
 
 constexpr char SHARED_MEMORY_NAME[] = "proj2048shm";
 constexpr char CONTROL_FLAGS_NAME[] = "control_flags";
-constexpr char MESSAGE_ARRAY_NAME[] = "simulator_message_array";
+constexpr char MESSAGE_QUEUE_NAME[] = "DQN_message_queue";
+constexpr char MESSAGE_QUEUE_BUFFER_NAME[] = "DQN_message_buffer";
 constexpr char DQN_MOVE_ARRAY_NAME[] = "DQN_move_array";
 constexpr char MOVE_LOOKUP_TABLE_NAME[] = "move_lookup_table";
 
@@ -25,10 +25,8 @@ struct ProcessControlFlags {
    bool manager_ready = false;
    bool workers_ready = false;
    bool moves_ready = false;
-   bool messages_ready = false;
    
    std::atomic<uint8_t> workers_waiting = process_count;
-   std::atomic<uint8_t> remaining_messages = process_count;
    std::atomic<uint8_t> remaining_moves = process_count;
 
    int test = 10;
@@ -39,7 +37,14 @@ struct ProcessControlFlags {
 #pragma pack(push, 1)
 struct Message { 
     uint8_t id;
-    uint16_t board[4];
-    uint8_t valid_moves;
+    uint64_t board;
+    uint8_t moves;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct ResponseCell { 
+    std::atomic<bool> read = true;
+    uint8_t move;
 };
 #pragma pack(pop)

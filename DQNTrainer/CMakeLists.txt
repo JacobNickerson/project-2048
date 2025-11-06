@@ -41,5 +41,5 @@ add_executable(DQNWorker ${SRC_BINARY2})
 target_include_directories(DQNWorker PRIVATE include)
 
 # Add python module
-pybind11_add_module(ProcessControls ${SRC_PYTHON_MODULE})
-target_include_directories(ProcessControls PRIVATE include)
+pybind11_add_module(PySharedMemoryInterface ${SRC_PYTHON_MODULE})
+target_include_directories(PySharedMemoryInterface PRIVATE include)

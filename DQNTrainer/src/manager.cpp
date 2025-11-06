@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 
+#include "lock_free_queue.hpp"
 #include "look_up_table.hpp"
 #include "shared_memory_structures.hpp"
 #include "simulator.hpp"
@@ -75,8 +76,9 @@ bool SimulationManager::startSimulation() {
 
 void SimulationManager::populateSharedMemory() {
 	control_flags  = shm.construct<ProcessControlFlags>(CONTROL_FLAGS_NAME)(process_count);
-	message_array  = shm.construct<Message>(MESSAGE_ARRAY_NAME)[process_count]();
-	DQN_move_array = shm.construct<Move>(DQN_MOVE_ARRAY_NAME)[process_count]();
+	auto message_queue_buffer = shm.construct<Message>(MESSAGE_QUEUE_BUFFER_NAME)[2 << 6](); // hard-coded
+	message_queue  = shm.construct<LockFreeQueue<Message>>(MESSAGE_QUEUE_NAME)(2 << 6); // hard-coded
+	DQN_move_array = shm.construct<ResponseCell>(DQN_MOVE_ARRAY_NAME)[process_count]();
 	auto look_up_table = generateLookupTable();
 	move_lookup_table = shm.construct<RowEntry>(MOVE_LOOKUP_TABLE_NAME)[MOVE_COUNT]();
 	memcpy(move_lookup_table, look_up_table.data(), sizeof(look_up_table));
