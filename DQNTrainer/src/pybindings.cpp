@@ -2,11 +2,11 @@
 #include <cstdint>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 #include <stdexcept>
 #include "lock_free_queue.hpp"
 #include "shared_memory_structures.hpp"
 
-#include <iostream>
 #include <unistd.h>
 
 namespace py = pybind11;
@@ -34,7 +34,7 @@ struct PySharedMemoryInterface {
     LockFreeQueue<Message>* message_queue;
     ResponseCell* move_array;
 
-    std::pair<Message,bool> getMessage() {
+    std::optional<Message> getMessage() {
         return message_queue->pop(message_buffer);
     }
     bool putResponse(int id, Move move) {
