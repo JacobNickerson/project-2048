@@ -20,7 +20,7 @@ Move Simulator::makeMove(Move move) {
         case RIGHT:  { moveRight(); break; }
         case UP:     { moveUp();    break; }
         case DOWN:   { moveDown();  break; }
-        case NOMOVE: { game_ended = true; return NOMOVE; }
+        case NOMOVE: { init(); return getValidMoves(); } // Sent by model as a signal to restart
         default: { game_ended = true; return NOMOVE; }
     }
     generateRandomTile();
