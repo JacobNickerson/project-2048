@@ -1,13 +1,13 @@
-import gym
 import numpy as np
+from PySharedMemoryInterface import SharedMemoryInterface
 from .buffer import ReplayBuffer
 from .agent import DQNAgent
 
 
-
-
 def train():
-    env = gym.make("CartPole-v1")
+    env = SharedMemoryInterface()
+    print("Hehe haha")
+    return
     state_dim = env.observation_space.shape[0]
     action_dim = env.action_space.n
 
