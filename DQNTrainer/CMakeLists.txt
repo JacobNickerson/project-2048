@@ -61,6 +61,17 @@ target_include_directories(DQNWorker PRIVATE include)
 # Add python module
 pybind11_add_module(PySharedMemoryInterface ${SRC_PYTHON_MODULE})
 target_include_directories(PySharedMemoryInterface PRIVATE include)
+set_target_properties(PySharedMemoryInterface PROPERTIES
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../DQNModel/
+)
+
+# Add custom command to generate stub
+add_custom_command(
+    TARGET PySharedMemoryInterface POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/../DQNModel/
+            python3 -m pybind11_stubgen PySharedMemoryInterface -o ${CMAKE_CURRENT_SOURCE_DIR}/../DQNModel/
+    COMMENT "Generating .pyi stubs for mylib"
+)
 
 # Add test binaries
 add_executable(LookUpTableTests ${LOOK_UP_TABLE_TESTS})
