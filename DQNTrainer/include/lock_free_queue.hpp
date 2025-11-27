@@ -4,48 +4,44 @@
 #include <cassert>
 #include <cstddef>
 #include <type_traits>
-#include <utility>
-#include <iostream>
+#include <optional>
+
 
 template<typename T>
 class LockFreeQueue {
     static_assert(std::is_trivially_copyable<T>::value, "LockFreeQueue elements must be trivially copyable"); 
     public:
         LockFreeQueue(size_t cap) : 
-            capacity(cap), mask(cap-1), head(0),
-            tail(0) {
+            capacity(cap), mask(cap-1) {
                 assert((cap & (cap-1)) == 0); // force capacity to be a power of 2
+                tail.store(0,std::memory_order_relaxed);
+                head.store(0,std::memory_order_relaxed);
             }
 
         size_t size() const {
-            size_t h = head.load(std::memory_order_acquire);
             size_t t = tail.load(std::memory_order_acquire);
-            return (t >= h) ? t-h : t-h+capacity;
+            size_t h = head.load(std::memory_order_acquire);
+            return (h >= t) ? h-t : h-t+capacity;
         }
         bool push(T* buffer, T item) noexcept {
-            size_t t = tail.load(std::memory_order_relaxed);
-            size_t next = (t + 1) & mask;
-            size_t h = head.load(std::memory_order_acquire);
-            if (next == h) {
-                // full
+            size_t h = head.load(std::memory_order_relaxed);
+            size_t next = (h + 1) & mask;
+            if (next == tail.load(std::memory_order_acquire)) {
                 return false;
             }
-            // write data then publish
-            buffer[t] = item;
-            tail.store(next, std::memory_order_release);
+            buffer[h] = item;
+            head.store(next, std::memory_order_release);
             return true;
         }
-        std::pair<T,bool> pop(T* buffer) noexcept {
-            size_t h = head.load(std::memory_order_relaxed);
-            size_t t = tail.load(std::memory_order_acquire);
-            if (h == t) {
-                // empty
-                return std::make_pair(T(),false);
+        std::optional<T> pop(T* buffer) noexcept {
+            size_t t = tail.load(std::memory_order_relaxed);
+            if (t == head.load(std::memory_order_acquire)) {
+                return std::nullopt;
             }
-            T val = buffer[h];
-            size_t next = (h + 1) & mask;
-            head.store(next, std::memory_order_release);
-            return std::make_pair(val, true);
+            T val = buffer[t];
+            size_t next = (t + 1) & mask;
+            tail.store(next, std::memory_order_release);
+            return val;
         }
 
     private:

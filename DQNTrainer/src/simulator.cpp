@@ -112,10 +112,10 @@ std::array<uint8_t,16> Simulator::convertBoardToUnpacked() const {
     return converted;
 }
 bool Simulator::rowCanMoveLeft(uint16_t row) const {
-    uint8_t t0 = (row >> 0) & 0xF;
-    uint8_t t1 = (row >> 4) & 0xF;
-    uint8_t t2 = (row >> 8) & 0xF;
-    uint8_t t3 = (row >> 12) & 0xF;
+    uint8_t t0 = (row >> 12) & 0xF;
+    uint8_t t1 = (row >> 8) & 0xF;
+    uint8_t t2 = (row >> 4) & 0xF;
+    uint8_t t3 = (row >> 0) & 0xF;
 
     return ((t0 == 0 && (t1|t2|t3)) |
             (t1 == 0 && (t2|t3)) |
