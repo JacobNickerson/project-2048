@@ -39,6 +39,7 @@ struct Message {
     uint8_t id;
     uint64_t board;
     uint8_t moves;
+    double reward;
 };
 #pragma pack(pop)
 

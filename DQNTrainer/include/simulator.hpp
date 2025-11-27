@@ -18,8 +18,6 @@ class Simulator {
         // Accepts a bit-packed char representing a move, it is assumed that the input is valid ie exactly one legal move
         // Updates the current moveset to represent the new board state and returns the new moveset
         Move makeMove(Move move);
-        // Returns the score of the current board 
-        uint32_t getScore() const;
         // Generates a message for use in the shared memory queue
         Message generateMessage() const;
 
@@ -27,16 +25,19 @@ class Simulator {
         uint64_t convertBoardToPacked() const;
         std::array<uint8_t,16> convertBoardToUnpacked() const;
 
+        // Initializes or reinitializes the board to a valid starting state
+        void init();
+
+    // NOTE: Made public for testing purposes
     // private:
         uint8_t id;
         Move current_moves;
         std::array<uint16_t,4> board; // represented as four bit packed rows, each tile is 4 bits representing the log2 value of the tile
+        std::array<uint16_t,4> prev_board; // stored for easy calculation of rewards 
         XorShift32 rng;
         const RowEntry* MOVE_TABLE = nullptr;
         uint32_t score{0};
         bool game_ended{false};
-
-        void init();
 
         // Shifts the entire board in a direction, merging tiles at most once
         void moveRight();
@@ -46,10 +47,13 @@ class Simulator {
 
         // Assumes that there is at least one valid space, since game should terminate before this can be called
         void generateRandomTile();
+
+        // Returns the score of the current board 
+        uint32_t getScore() const;
         
         // Helpers
         inline uint8_t shiftAmt(uint8_t index) const { return 4*(3-index%4); }
         inline void setValue(uint8_t index, uint8_t val) { board[index/4] |= (val << shiftAmt(index)); } 
         bool rowCanMoveLeft(uint16_t row) const;
-
+        double getReward() const;
 };

@@ -3,17 +3,18 @@
 #include <cstdint>
 #include <cstring>
 
-constexpr uint8_t LEFT  = 1;
-constexpr uint8_t RIGHT = 2;
-constexpr uint8_t UP    = 4;
-constexpr uint8_t DOWN  = 8;
-constexpr uint8_t NOMOVE = 16;
+constexpr uint8_t LEFT   = 0b00000001;
+constexpr uint8_t RIGHT  = 0b00000010;
+constexpr uint8_t UP     = 0b00000100;
+constexpr uint8_t DOWN   = 0b00001000;
+constexpr uint8_t NOMOVE = 0b00010000;
 
 Simulator::Simulator(uint8_t id, uint32_t rng_seed, const RowEntry* MOVE_TABLE) : id(id), rng(rng_seed), MOVE_TABLE(MOVE_TABLE) {
     init();
     return;
 }
 Move Simulator::makeMove(Move move) {
+    prev_board = board;
     switch (move) {
         case LEFT:   { moveLeft();  break; }
         case RIGHT:  { moveRight(); break; }
@@ -83,11 +84,13 @@ void Simulator::generateRandomTile() {
 }
 
 void Simulator::init() {
+    game_ended = false;
     score = 0;
     memset(board.data(), 0, sizeof(board));
     generateRandomTile();
     generateRandomTile();
     current_moves = getValidMoves();
+    prev_board = board;
 }
 uint64_t Simulator::convertBoardToPacked() const {
     uint64_t converted = 0;
@@ -146,6 +149,16 @@ Message Simulator::generateMessage() const {
     return { 
         id,
         convertBoardToPacked(),
-        current_moves
+        current_moves,
+        getReward()
     };
+}
+
+double Simulator::getReward() const {
+    // naive reward: difference in score
+    uint32_t prev_score = 0;
+    for (const auto& row : prev_board) {
+        prev_score += calculateScore(row);
+    }
+    return static_cast<double>(score-prev_score);
 }
