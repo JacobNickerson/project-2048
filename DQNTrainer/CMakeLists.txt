@@ -73,9 +73,11 @@ add_custom_command(
     COMMENT "Generating .pyi stubs for mylib"
 )
 
-# Add test binaries
-add_executable(LookUpTableTests ${LOOK_UP_TABLE_TESTS})
-target_include_directories(LookUpTableTests PRIVATE include)
+if (ENABLE_TESTS)
+    # Add test binaries
+    add_executable(LookUpTableTests ${LOOK_UP_TABLE_TESTS})
+    target_include_directories(LookUpTableTests PRIVATE include)
 
-add_executable(SimulatorTests ${SIMULATOR_TESTS})
-target_include_directories(SimulatorTests PRIVATE include)
+    add_executable(SimulatorTests ${SIMULATOR_TESTS})
+    target_include_directories(SimulatorTests PRIVATE include)
+endif()
