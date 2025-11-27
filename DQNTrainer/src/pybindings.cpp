@@ -42,10 +42,10 @@ struct PySharedMemoryInterface {
     // NOTE: Returns a RAW MEMORY BUFFER, must be cast in Python using a NumPy dtype
     std::optional<py::array_t<char>> getMessageBatch() {
         auto messages = message_queue->pop_all(message_buffer);
-        if (!messages.has_value()) { return std::nullopt; } 
-        constexpr auto type_size = sizeof(Message);
-        return pybind11::array_t<char>(
-            messages->size() * type_size,
+        if (!messages.has_value()) { return std::nullopt; }
+        constexpr auto size = sizeof(Message);
+        return py::array_t<char>(
+            messages->size()*size,
             reinterpret_cast<char*>(messages->data())
         );
     }
@@ -65,7 +65,7 @@ PYBIND11_MODULE(PySharedMemoryInterface, m) {
         .def("getMessageBatch", &PySharedMemoryInterface::getMessageBatch)
         .def("putResponse", &PySharedMemoryInterface::putResponse);
 
-    py::class_<Message>(m,"SimulatorMessage")
+    py::class_<Message>(m,"Message")
         .def(py::init<>())
         .def_readwrite("id", &Message::id)
         .def_readwrite("board", &Message::board)
