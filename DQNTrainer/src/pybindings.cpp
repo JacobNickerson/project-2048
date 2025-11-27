@@ -1,5 +1,6 @@
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <cstdint>
+#include <optional>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -37,6 +38,18 @@ struct PySharedMemoryInterface {
     std::optional<Message> getMessage() {
         return message_queue->pop(message_buffer);
     }
+
+    // NOTE: Returns a RAW MEMORY BUFFER, must be cast in Python using a NumPy dtype
+    std::optional<py::array_t<char>> getMessageBatch() {
+        auto messages = message_queue->pop_all(message_buffer);
+        if (!messages.has_value()) { return std::nullopt; } 
+        constexpr auto type_size = sizeof(Message);
+        return pybind11::array_t<char>(
+            messages->size() * type_size,
+            reinterpret_cast<char*>(messages->data())
+        );
+    }
+
     bool putResponse(int id, Move move) {
         if (!move_array[id].read.load()) { return false; } // simulation hasn't read response yet, don't overwrite 
         move_array[id].move = move;
@@ -49,6 +62,7 @@ PYBIND11_MODULE(PySharedMemoryInterface, m) {
     py::class_<PySharedMemoryInterface>(m, "SharedMemoryInterface")
         .def(py::init<>())
         .def("getMessage", &PySharedMemoryInterface::getMessage)
+        .def("getMessageBatch", &PySharedMemoryInterface::getMessageBatch)
         .def("putResponse", &PySharedMemoryInterface::putResponse);
 
     py::class_<Message>(m,"SimulatorMessage")
