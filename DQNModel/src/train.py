@@ -1,21 +1,19 @@
 import subprocess
 from agent import DQNAgent
 from env_manager import ParallelEnvManager
+import tensorflow as tf
 from time import time
 
 def train_dqn(agent: DQNAgent, env_manager: ParallelEnvManager, episodes: int, epsilon: float):
-    """
-    env_manager: your ParallelEnvManager wrapper that communicates with C++ processes.
-    """
     num_envs = env_manager.num_envs
 
     for ep in range(episodes):
+        print(ep)
         active_envs = set(range(num_envs))
         env_manager.reset_all()  # reset all environments at episode start
         
         # Load initial states and set up some book-keeping structures
         states = env_manager.poll_results()
-        print(states)
         needs_action = [True] * num_envs # used to prevent reprocessing states
         actions = [-1]*num_envs
 
@@ -46,15 +44,21 @@ def train_dqn(agent: DQNAgent, env_manager: ParallelEnvManager, episodes: int, e
 
             agent.update()
 
-        # 7. Sync target network at episode end
         agent.sync_target_network()
     print("FINISHED!")
 
 
 if __name__ == "__main__":
-    NUM_ENVS = 6
-    NUM_EP = 3
-    STATE_DIM = 1
+    gpus = tf.config.list_physical_devices("GPU")
+    if gpus:
+        tf.config.experimental.set_memory_growth(gpus[0], True)
+        print("Using GPU")
+    else:
+        print("GPU not detected")
+
+    NUM_ENVS = 15
+    NUM_EP = 20
+    STATE_DIM = 16
     ACTION_DIM = 4
 
     # training_sim = subprocess.Popen(
@@ -65,11 +69,9 @@ if __name__ == "__main__":
     agent_2048 = DQNAgent(STATE_DIM, ACTION_DIM)
     env_man = ParallelEnvManager(NUM_ENVS)
 
-    print("Timing training")
-    start = time()
+    tf.profiler.experimental.start("logs/profile")
     train_dqn(agent_2048, env_man, episodes=NUM_EP, epsilon=0.1)
-    end = time()
-    print(f"Elapsed time for {NUM_ENVS} training for {NUM_EP} episodes: {end-start} seconds")
+    tf.profiler.experimental.stop()
     agent_2048.q_network.save_weights("saved_models/dqn_policy.weights.h5")
     agent_2048.target_network.save_weights("saved_models/dqn_target.weights.h5")
     # training_sim.terminate()
