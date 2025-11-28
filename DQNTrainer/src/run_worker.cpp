@@ -24,8 +24,7 @@ int main(int argc, char** argv) {
         std::cerr << "Process control flags not found in worker " << sim_id << '\n';
         return 1;
     }
-    auto mb = shm.find<Message>(MESSAGE_QUEUE_BUFFER_NAME);
-    auto mq = shm.find<LockFreeQueue<Message>>(MESSAGE_QUEUE_NAME);
+    auto mq = shm.find<Message>(MESSAGE_ARRAY_NAME);
     if (!mq.first) {
         std::cerr << "Message array not found in worker " << sim_id << '\n';
         return 1;
@@ -50,7 +49,6 @@ int main(int argc, char** argv) {
         sim_id,
         dist(gen),
         pcf.first,
-        mb.first,
         mq.first,
         mva.first,
         mlut.first

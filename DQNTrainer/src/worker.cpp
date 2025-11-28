@@ -1,5 +1,4 @@
 #include "worker.hpp"
-#include "lock_free_queue.hpp"
 #include "look_up_table.hpp"
 #include "shared_memory_structures.hpp"
 #include "simulator.hpp"
@@ -12,16 +11,14 @@ Worker::Worker(
     uint8_t id,
     unsigned rng_seed,
     ProcessControlFlags* control_flags,
-    Message* message_buffer,
-    LockFreeQueue<Message>* message_queue,
+    Message* message_array,
     ResponseCell* DQN_move_array,
     const RowEntry* move_lookup_table
 ) : 
     id(id),
     simulator(id,1,move_lookup_table),
     control_flags(control_flags),
-    message_buffer(message_buffer),
-    message_queue(message_queue),
+    message_array(message_array),
     DQN_move_array(DQN_move_array) {
         bip::scoped_lock<bip::interprocess_mutex> lock(control_flags->mtx);
         while (!control_flags->manager_ready) {
@@ -48,7 +45,7 @@ void Worker::simulate() {
     lock.unlock();
     for (;;) {
         // queue will always have at least as many spaces, processes can only take one queue space at a time, thus this should never fail
-        message_queue->push(message_buffer,simulator.generateMessage());
+        message_array[id] = simulator.generateMessage();
         while (DQN_move_array[id].read.load()) {
             // wait for DQN to update
             // TODO: Better way to wait than busy waiting

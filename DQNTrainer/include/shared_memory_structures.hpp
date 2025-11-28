@@ -9,8 +9,7 @@ namespace bip = boost::interprocess;
 
 constexpr char SHARED_MEMORY_NAME[] = "proj2048shm";
 constexpr char CONTROL_FLAGS_NAME[] = "control_flags";
-constexpr char MESSAGE_QUEUE_NAME[] = "DQN_message_queue";
-constexpr char MESSAGE_QUEUE_BUFFER_NAME[] = "DQN_message_buffer";
+constexpr char MESSAGE_ARRAY_NAME[] = "DQN_message_array";
 constexpr char DQN_MOVE_ARRAY_NAME[] = "DQN_move_array";
 constexpr char MOVE_LOOKUP_TABLE_NAME[] = "move_lookup_table";
 
@@ -40,6 +39,7 @@ struct Message {
     uint64_t board;
     uint8_t moves;
     double reward;
+    bool is_fresh = true;
 };
 #pragma pack(pop)
 

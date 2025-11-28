@@ -1,15 +1,12 @@
 #include "manager.hpp"
 
-#include <bit>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <iostream>
 #include <string>
 
-#include "lock_free_queue.hpp"
 #include "look_up_table.hpp"
 #include "shared_memory_structures.hpp"
-#include "simulator.hpp"
 
 SimulationManager::SimulationManager(uint8_t process_count, bool logging) :
 	process_count(process_count),
@@ -83,8 +80,7 @@ bool SimulationManager::startSimulation() {
 
 void SimulationManager::populateSharedMemory() {
 	control_flags  = shm.construct<ProcessControlFlags>(CONTROL_FLAGS_NAME)(process_count);
-	auto message_queue_buffer = shm.construct<Message>(MESSAGE_QUEUE_BUFFER_NAME)[std::bit_ceil(process_count+1u)](); 
-	message_queue  = shm.construct<LockFreeQueue<Message>>(MESSAGE_QUEUE_NAME)(std::bit_ceil(process_count+1u)); 
+	message_array = shm.construct<Message>(MESSAGE_ARRAY_NAME)[process_count]();
 	DQN_move_array = shm.construct<ResponseCell>(DQN_MOVE_ARRAY_NAME)[process_count]();
 	auto look_up_table = generateLookupTable();
 	move_lookup_table = shm.construct<RowEntry>(MOVE_LOOKUP_TABLE_NAME)[MOVE_COUNT]();

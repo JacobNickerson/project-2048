@@ -1,0 +1,9 @@
+# Generate compile_commands.json
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+# Refresh current cmake build
+cmake --fresh .
+
+# Generate Makefile with CMake, uses clang as compiler
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -DCMAKE_EXPORT_COMPILE_COMMANDS=ON

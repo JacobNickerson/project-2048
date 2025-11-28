@@ -14,7 +14,6 @@ Simulator::Simulator(uint8_t id, uint32_t rng_seed, const RowEntry* MOVE_TABLE) 
     return;
 }
 Move Simulator::makeMove(Move move) {
-    if (move == NOMOVE) { std::cout << id << " RESETTING\n"; }
     prev_board = board;
     switch (move) {
         case LEFT:   { moveLeft();  break; }
@@ -74,17 +73,6 @@ void Simulator::generateRandomTile() {
             empty[count] = (i << 4) | (j & 0x0F); // MS four bits row, LS four bits col
             count += cell; // only advance when finding an empty tile
         }
-    }
-    if (count == 0) {
-        std::cout << "DEBUG\n"; 
-        std::cout << "Current board:\n";
-        for (const auto& row : board) {
-            for (int i{0}; i < 4; ++i) {
-                std::cout << std::bitset<4>((row >> 4*(3-i)) & 0x000F) << ' ';
-            }
-            std::cout << '\n';
-        }
-        return;
     }
     auto ind = rng.nextUInt(count);
     int rng_roll = rng.nextUInt(10);
@@ -162,7 +150,8 @@ Message Simulator::generateMessage() const {
         id,
         convertBoardToPacked(),
         current_moves,
-        getReward()
+        getReward(),
+        true
     };
 }
 
