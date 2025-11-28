@@ -4,6 +4,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <stdexcept>
+#include "lock_queue.hpp"
 #include "shared_memory_structures.hpp"
 
 #include <unistd.h>
@@ -18,8 +19,10 @@ struct PySharedMemoryInterface {
         // Find shared memory objects
         control_flags = shm.find<ProcessControlFlags>(CONTROL_FLAGS_NAME).first;
         if (!control_flags) { throw std::runtime_error("Couldn't find process control flags"); }
-        message_array = shm.find<Message>(MESSAGE_ARRAY_NAME).first;
-        if (!message_array) { throw std::runtime_error("Couldn't find message buffer"); }
+        message_buffer = shm.find<Message>(MESSAGE_BUFFER_NAME).first;
+        if (!message_buffer) { throw std::runtime_error("Couldn't find message buffer"); }
+        message_queue = shm.find<LockQueue<Message>>(MESSAGE_QUEUE_NAME).first;
+        if (!message_queue) { throw std::runtime_error("Couldn't find message buffer"); }
         move_array= shm.find<ResponseCell>(DQN_MOVE_ARRAY_NAME).first;
         if (!move_array) { throw std::runtime_error("Couldn't find move array"); }
         process_count = control_flags->process_count;
@@ -29,26 +32,21 @@ struct PySharedMemoryInterface {
     bip::managed_shared_memory shm;
     ProcessControlFlags* control_flags;
     uint8_t process_count;
-    Message* message_array; // pass to message queue because of shared memory nonsense
+    Message* message_buffer; // pass to message queue because of shared memory nonsense
+    LockQueue<Message>* message_queue; // pass to message queue because of shared memory nonsense
     ResponseCell* move_array;
 
-    Message getMessage(int id) {
-        auto msg = message_array[id];
-        message_array[id].is_fresh = false;
-        return msg;
+    std::optional<Message> getMessage() {
+        return message_queue->pop(message_buffer);
     }
 
     // NOTE: Returns a RAW MEMORY BUFFER, must be cast in Python using a NumPy dtype
     py::array_t<char> getMessageBatch() {
-        constexpr auto size = sizeof(Message);
-        Message msgs[process_count];
-        memcpy(msgs,message_array,process_count*size);
-        for (uint8_t i{0}; i < process_count; ++i) {
-            message_array[i].is_fresh = false;
-        }
+        static constexpr auto size = sizeof(Message);
+        auto vec = message_queue->popBatch(message_buffer);
         return py::array_t<char>(
-            process_count*size,
-            reinterpret_cast<char*>(msgs)
+            vec.size()*size,
+            reinterpret_cast<char*>(vec.data())
         );
     }
 
@@ -74,6 +72,5 @@ PYBIND11_MODULE(PySharedMemoryInterface, m) {
         .def_readwrite("id", &Message::id)
         .def_readwrite("board", &Message::board)
         .def_readwrite("moves", &Message::moves)
-        .def_readwrite("reward", &Message::reward)
-        .def_readwrite("fresh", &Message::is_fresh);
+        .def_readwrite("reward", &Message::reward);
 };

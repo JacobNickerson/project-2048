@@ -14,7 +14,7 @@ Simulator::Simulator(uint8_t id, uint32_t rng_seed, const RowEntry* MOVE_TABLE) 
     return;
 }
 Move Simulator::makeMove(Move move) {
-    std::cout << "RECEIVED MOVE: " << std::bitset<5>(move) << std::endl;
+    std::cout << "Received move: " << std::bitset<5>(move) << '\n';
     prev_board = board;
     switch (move) {
         case LEFT:   { moveLeft();  break; }
@@ -85,6 +85,7 @@ void Simulator::generateRandomTile() {
 }
 
 void Simulator::init() {
+    std::cout << "(RE)STARTING GAME: " << std::to_string(id) << '\n';
     game_ended = false;
     score = 0;
     memset(board.data(), 0, sizeof(board));
@@ -151,8 +152,7 @@ Message Simulator::generateMessage() const {
         id,
         convertBoardToPacked(),
         current_moves,
-        getReward(),
-        true
+        getReward()
     };
 }
 

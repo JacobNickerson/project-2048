@@ -3,6 +3,7 @@
 #include <boost/interprocess/interprocess_fwd.hpp>
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <cstdint>
+#include "lock_queue.hpp"
 #include "look_up_table.hpp"
 #include "shared_memory_structures.hpp"
 #include "simulator.hpp"
@@ -13,7 +14,8 @@ class Worker {
             uint8_t id,
             unsigned rng_seed,
             ProcessControlFlags* control_flags,
-            Message* message_array,
+            Message* message_buffer,
+            LockQueue<Message>* message_queue,
             ResponseCell* DQN_move_array,
             const RowEntry* move_lookup_table
         );
@@ -34,6 +36,7 @@ class Worker {
         Simulator simulator; 
         uint8_t id;
         ProcessControlFlags* control_flags = nullptr;
-        Message* message_array = nullptr;
+        Message* message_buffer = nullptr;
+        LockQueue<Message>* message_queue = nullptr;
         ResponseCell* DQN_move_array = nullptr;
 };

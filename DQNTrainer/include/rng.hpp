@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include <iostream>
 
 // branchless fast RNG, probably unnecessary but man is it fun
 struct XorShift32 {

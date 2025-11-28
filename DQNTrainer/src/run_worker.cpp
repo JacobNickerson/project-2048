@@ -1,5 +1,5 @@
 #include <random>
-#include "lock_free_queue.hpp"
+#include "lock_queue.hpp"
 #include "shared_memory_structures.hpp"
 #include "worker.hpp"
 
@@ -24,9 +24,14 @@ int main(int argc, char** argv) {
         std::cerr << "Process control flags not found in worker " << sim_id << '\n';
         return 1;
     }
-    auto mq = shm.find<Message>(MESSAGE_ARRAY_NAME);
+    auto mb = shm.find<Message>(MESSAGE_BUFFER_NAME);
+    if (!mb.first) {
+        std::cerr << "Message buffer not found in worker " << sim_id << '\n';
+        return 1;
+    }
+    auto mq = shm.find<LockQueue<Message>>(MESSAGE_QUEUE_NAME);
     if (!mq.first) {
-        std::cerr << "Message array not found in worker " << sim_id << '\n';
+        std::cerr << "Message buffer not found in worker " << sim_id << '\n';
         return 1;
     }
     auto mva = shm.find<ResponseCell>(DQN_MOVE_ARRAY_NAME);
@@ -49,6 +54,7 @@ int main(int argc, char** argv) {
         sim_id,
         dist(gen),
         pcf.first,
+        mb.first,
         mq.first,
         mva.first,
         mlut.first
