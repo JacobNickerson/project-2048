@@ -25,6 +25,9 @@ void SimulationManager::spawnSimulators() {
 	for (int i{0}; i < process_count; ++i) {
 		// TODO: Make this more robust than a hardcoded path
 		std::vector<std::string> process_args = {"./DQNWorker", std::to_string(i)};
+		if (logging) {
+			process_args.push_back("--verbose");
+		}
 		children.emplace_back(bp::child(process_args));
 	}
 	if (logging) {
@@ -47,6 +50,9 @@ void SimulationManager::restartDeadSimulators() {
 		if (!child.running()) {
 			// TODO: Make this more robust than a hardcoded path
 			std::vector<std::string> process_args = {"./DQNWorker", std::to_string(i)};
+			if (logging) {
+				process_args.push_back("--verbose");
+			}
 			child = bp::child(process_args); 
 			if (logging) {
 				std::cout << "Restarted a dead worker\n";

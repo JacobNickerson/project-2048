@@ -40,18 +40,19 @@ struct PySharedMemoryInterface {
     }
 
     // NOTE: Returns a RAW MEMORY BUFFER, must be cast in Python using a NumPy dtype
-    std::optional<py::array_t<char>> getMessageBatch() {
-        auto messages = message_queue->pop_all(message_buffer);
-        if (!messages.has_value()) { return std::nullopt; }
+    py::array_t<char> getMessageBatch() {
+        auto messages = message_queue->popBatch(message_buffer);
         constexpr auto size = sizeof(Message);
         return py::array_t<char>(
-            messages->size()*size,
-            reinterpret_cast<char*>(messages->data())
+            messages.size()*size,
+            reinterpret_cast<char*>(messages.data())
         );
     }
 
+    // NOTE: Should only be called when the simulation has for sure read the response
     bool putResponse(int id, Move move) {
-        if (!move_array[id].read.load()) { return false; } // simulation hasn't read response yet, don't overwrite 
+        // slow terrible way of waiting for env to read and mark as read
+        while (!move_array[id].read.load()) {}
         move_array[id].move = move;
         move_array[id].read.store(false);
         return true;
@@ -69,5 +70,6 @@ PYBIND11_MODULE(PySharedMemoryInterface, m) {
         .def(py::init<>())
         .def_readwrite("id", &Message::id)
         .def_readwrite("board", &Message::board)
-        .def_readwrite("moves", &Message::moves);
+        .def_readwrite("moves", &Message::moves)
+        .def_readwrite("reward", &Message::reward);
 };

@@ -47,7 +47,6 @@ void Worker::simulate() {
     }
     lock.unlock();
     for (;;) {
-        auto msg = simulator.generateMessage();
         // queue will always have at least as many spaces, processes can only take one queue space at a time, thus this should never fail
         message_queue->push(message_buffer,simulator.generateMessage());
         while (DQN_move_array[id].read.load()) {
@@ -55,9 +54,8 @@ void Worker::simulate() {
             // TODO: Better way to wait than busy waiting
         }
         Move curr_move = DQN_move_array[id].move;
-        std::cout << "Got move: " << std::bitset<8>(curr_move) << std::endl;
-        DQN_move_array[id].read.store(true);
         simulator.makeMove(curr_move);
+        DQN_move_array[id].read.store(true);
         // TODO: Implement method of notifying DQN model that a game has ended
     }
     std::cout << "somehow ended!\n";
