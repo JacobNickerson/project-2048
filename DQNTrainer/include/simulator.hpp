@@ -29,7 +29,7 @@ class Simulator {
         void init();
 
     // NOTE: Made public for testing purposes
-    // private:
+    private:
         uint8_t id;
         Move current_moves;
         std::array<uint16_t,4> board; // represented as four bit packed rows, each tile is 4 bits representing the log2 value of the tile

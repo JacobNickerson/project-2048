@@ -32,7 +32,7 @@ class SimulationManager {
         LockFreeQueue<Message>* message_queue = nullptr;
         ResponseCell* DQN_move_array = nullptr;
         RowEntry* move_lookup_table = nullptr;
-
+        
         // Initializing functions
         void spawnSimulators();
         void populateSharedMemory();
