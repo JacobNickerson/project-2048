@@ -21,6 +21,7 @@ class SimulationManager {
         void killSimulators();
         void restartDeadSimulators();
         bool startSimulation();
+        void kill();
 
 
     private:

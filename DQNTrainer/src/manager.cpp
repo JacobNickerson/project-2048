@@ -82,6 +82,11 @@ bool SimulationManager::startSimulation() {
 	std::cout << "DQN attached, starting simulators\n";
 	return true;
 }
+void SimulationManager::kill() {
+	control_flags->workers_ready = true;
+	control_flags->DQN_connected = true;
+	control_flags->cond.notify_all();
+}
 
 void SimulationManager::populateSharedMemory() {
 	control_flags  = shm.construct<ProcessControlFlags>(CONTROL_FLAGS_NAME)(process_count);
