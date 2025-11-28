@@ -17,18 +17,29 @@ class ParallelEnvManager:
         self.shm = SharedMemoryInterface()
 
     def write_actions(self, actions):
+        """
+        Sends valid actions to their respective environments
+        Marks each action as sent by setting it to negative
+        """
         for i, a in enumerate(actions):
             if a > 0:
                 self.shm.putResponse(i,a)
+                actions[i] = -a
 
-    def poll_results(self) -> List[int]:  # TODO: Proper type hint
+    def poll_results(self) -> np.ndarray:
         """
         Batch reads all available states from the shared memory queue
+        CURRENTLY BROKEN
+        Some type of race condition bug in C++ library code causes a message to be dropped occasionally
+        Results in deadlock as env waits for response and model waits for message 
         """
         return np.frombuffer(self.shm.getMessageBatch(), dtype=message_dtype)
 
-    # TODO: Very silly way of doing resets, should make a better way using the manager class
+    #TODO: Very silly way of doing resets, should make a better way using the manager class
     def reset_all(self):
+        """
+        Reset all environments by clearing the queue and sending reset signal to all envs
+        """
         print("Resetting all")
         self.poll_results() # clear queue
         for i in range(self.num_envs):
@@ -37,14 +48,13 @@ class ParallelEnvManager:
     def get_all_states(self):
         """
         Gets the states for all processes and puts them in an ordered array
-        Should only be called at the start of a training session because it discards all other information
+        Ensures that states for all envs are read and synchronized
         """
         states = [None]*self.num_envs
         read = 0
         while read < self.num_envs:
-            print(f"read = {read}")
             results = self.poll_results()
             for result in results:
-                states[result["id"]] = result 
+                states[result["id"]] = result
                 read += 1
         return states

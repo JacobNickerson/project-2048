@@ -35,31 +35,22 @@ class DQNAgent:
             return 0b00010000
 
         valid_actions_arr = [i for i in range(self.action_dim) if (valid_actions >> i) & 1]
-        print(f"valid actions: {valid_actions_arr}")
 
         if np.random.rand() < epsilon:
             # pick randomly among valid actions
             return 1 << np.random.choice(valid_actions_arr)
 
         state = unpack_state(state)
-        print(f"state: {state}")
 
         # Forward pass through the network
         state_tensor = tf.convert_to_tensor([state], dtype=tf.float32)
         q_values = self.q_network(state_tensor)[0].numpy()  # shape: (action_dim,)
-        print(f"q_values: {q_values}")
 
         # Mask invalid actions
         mask = np.full_like(q_values, -np.inf, dtype=np.float32)
-        print(f"mask: {mask}")
         for action in valid_actions_arr:
             mask[action] = q_values[action]
-        print(f"mask: {mask}")
-        test = np.argmax(mask)
-        print(f"argmax: {test}")
-        print(f"inted: {int(test)}")
 
-        print(f"Sending response: {format(1 << int(np.argmax(mask)),"05b")}")
         return 1 << int(np.argmax(mask))
 
     def update(self) -> None:
