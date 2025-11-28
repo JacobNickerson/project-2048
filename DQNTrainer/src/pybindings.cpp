@@ -23,6 +23,8 @@ struct PySharedMemoryInterface {
         move_array= shm.find<ResponseCell>(DQN_MOVE_ARRAY_NAME).first;
         if (!move_array) { throw std::runtime_error("Couldn't find move array"); }
         process_count = control_flags->process_count;
+        control_flags->DQN_connected = true;
+        control_flags->cond.notify_all();
     }
     bip::managed_shared_memory shm;
     ProcessControlFlags* control_flags;

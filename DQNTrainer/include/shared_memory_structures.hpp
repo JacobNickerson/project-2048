@@ -24,6 +24,7 @@ struct ProcessControlFlags {
    bool manager_ready = false;
    bool workers_ready = false;
    bool moves_ready = false;
+   bool DQN_connected = false;
    
    std::atomic<uint8_t> workers_waiting = process_count;
    std::atomic<uint8_t> remaining_moves = process_count;

@@ -56,6 +56,7 @@ int main(int argc, char** argv) {
     if (!worker.sendReady()) {
         std::cerr << "error: worker " << sim_id << " could not send ready\n";
     }
+    worker.waitForDQN();
     worker.simulate();
 
     return 0;

@@ -73,8 +73,13 @@ bool SimulationManager::startSimulation() {
 		control_flags->cond.wait(lock, [this]{ return control_flags->workers_ready; });
 	}
 	if (logging) {
-		std::cout << "Received OK from simulators, simulators running\n"; 
+		std::cout << "Received OK from simulators, waiting for DQN to attach\n"; 
 	}
+	while (!control_flags->DQN_connected) {
+		std::cout << "Manager waiting for DQN to attach...\n";
+		control_flags->cond.wait(lock, [this]{ return control_flags->DQN_connected; });
+	}
+	std::cout << "DQN attached, starting simulators\n";
 	return true;
 }
 

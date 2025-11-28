@@ -14,6 +14,7 @@ Simulator::Simulator(uint8_t id, uint32_t rng_seed, const RowEntry* MOVE_TABLE) 
     return;
 }
 Move Simulator::makeMove(Move move) {
+    std::cout << "RECEIVED MOVE: " << std::bitset<5>(move) << std::endl;
     prev_board = board;
     switch (move) {
         case LEFT:   { moveLeft();  break; }

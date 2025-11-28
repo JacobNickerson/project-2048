@@ -22,6 +22,9 @@ class Worker {
         // if all workers are ready.
         bool sendReady();
 
+        // Infinite loop until DQN attaches to shared memory and updates flag
+        void waitForDQN();
+
         // Waits for all simulators to be ready, then runs the simulation, will continually output
         // results into message array and accept move inputs from the DQN move array until signalled
         // to stop by the manager

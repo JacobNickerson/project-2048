@@ -26,6 +26,12 @@ Worker::Worker(
         }
     }
         
+void Worker::waitForDQN() {
+    bip::scoped_lock<bip::interprocess_mutex> lock(control_flags->mtx);
+    while (!control_flags->DQN_connected) {
+        control_flags->cond.wait(lock, [this]{ return control_flags->DQN_connected; });
+    }
+}
 
 bool Worker::sendReady() {
     // some type of error checking???
