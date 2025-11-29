@@ -1,6 +1,4 @@
 #include "look_up_table.hpp"
-#include <iostream>
-#include <bitset>
 
 std::array<uint8_t, 4> unpackRow(uint16_t row) {
     std::array<uint8_t, 4> unpacked_row;

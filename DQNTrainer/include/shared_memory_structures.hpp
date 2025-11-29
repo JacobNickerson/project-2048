@@ -1,7 +1,12 @@
 #pragma once
 
+#include "look_up_table.hpp"
+#include "lock_queue.hpp"
+#include <boost/interprocess/creation_tags.hpp>
+#include <boost/interprocess/interprocess_fwd.hpp>
 #include <boost/interprocess/sync/interprocess_condition.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
+#include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/process/v1.hpp>
 #include <cstdint>
 
@@ -50,3 +55,36 @@ struct ResponseCell {
     uint8_t move;
 };
 #pragma pack(pop)
+
+struct SharedMemoryStructures {
+    SharedMemoryStructures() {
+        auto shm = bip::managed_shared_memory(bip::open_only, SHARED_MEMORY_NAME);
+        pcf = shm.find<ProcessControlFlags>(CONTROL_FLAGS_NAME).first;
+        if (!pcf) {
+            std::cerr << "Could not find pcf\n";
+        }
+        mb = shm.find<Message>(MESSAGE_BUFFER_NAME).first;
+        if (!mb) {
+            std::cerr << "Could not find mb\n";
+        }
+        mq = shm.find<LockQueue<Message>>(MESSAGE_QUEUE_NAME).first;
+        if (!mq) {
+            std::cerr << "Could not find mq\n";
+        }
+        mva = shm.find<ResponseCell>(DQN_MOVE_ARRAY_NAME).first;
+        if (!mva) {
+            std::cerr << "Could not find mva\n";
+        }
+        mlut = shm.find<RowEntry>(MOVE_LOOKUP_TABLE_NAME).first;
+        if (!mlut) {
+            std::cerr << "Could not find mlut\n";
+        }
+        std::cout << "TEST: " << std::bitset<16>(mlut[1].result) << std::endl;
+        std::cout << (size_t)mlut << std::endl;
+    }
+    ProcessControlFlags* pcf = nullptr;
+    Message* mb = nullptr;
+    LockQueue<Message>* mq = nullptr;
+    ResponseCell* mva = nullptr;
+    RowEntry* mlut = nullptr;
+};

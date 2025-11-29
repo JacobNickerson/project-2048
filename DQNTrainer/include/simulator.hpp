@@ -21,6 +21,9 @@ class Simulator {
         // Generates a message for use in the shared memory queue
         Message generateMessage() const;
 
+        // Returns the score of the current board 
+        uint32_t getScore() const;
+
         // converter functions, not sure if they're needed but might be helpful
         uint64_t convertBoardToPacked() const;
         std::array<uint8_t,16> convertBoardToUnpacked() const;
@@ -47,9 +50,6 @@ class Simulator {
 
         // Assumes that there is at least one valid space, since game should terminate before this can be called
         void generateRandomTile();
-
-        // Returns the score of the current board 
-        uint32_t getScore() const;
         
         // Helpers
         inline uint8_t shiftAmt(uint8_t index) const { return 4*(3-index%4); }

@@ -30,6 +30,13 @@ set(SRC_BINARY2
     src/run_worker.cpp
 )
 
+set(SRC_BINARY3
+    src/look_up_table.cpp
+    src/simulator.cpp
+    src/game.cpp
+    src/run_game.cpp
+)
+
 set(LOOK_UP_TABLE_TESTS
     src/look_up_table.cpp
     src/manager.cpp
@@ -57,6 +64,10 @@ target_include_directories(DQNTrainer PRIVATE include)
 # Add second executable
 add_executable(DQNWorker ${SRC_BINARY2})
 target_include_directories(DQNWorker PRIVATE include)
+
+# Add second executable
+add_executable(DQNPlayer ${SRC_BINARY3})
+target_include_directories(DQNPlayer PRIVATE include)
 
 # Add python module
 pybind11_add_module(PySharedMemoryInterface ${SRC_PYTHON_MODULE})

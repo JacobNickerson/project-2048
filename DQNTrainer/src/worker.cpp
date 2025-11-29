@@ -18,7 +18,7 @@ Worker::Worker(
     const RowEntry* move_lookup_table
 ) : 
     id(id),
-    simulator(id,1,move_lookup_table),
+    simulator(id,rng_seed,move_lookup_table),
     control_flags(control_flags),
     message_buffer(message_buffer),
     message_queue(message_queue),
