@@ -1,8 +1,5 @@
 import numpy as np
-from multiprocessing import shared_memory, Queue
-from typing import List, Tuple
-from PySharedMemoryInterface import SharedMemoryInterface
-from buffer import State, Action, Reward, Done
+from src.PySharedMemoryInterface import SharedMemoryInterface # type: ignore
 
 message_dtype = np.dtype([
     ('id', np.uint8),

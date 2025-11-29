@@ -1,8 +1,5 @@
-import subprocess
-from agent import DQNAgent
-from env_manager import ParallelEnvManager
-import tensorflow as tf
-from time import time
+from src.agent import DQNAgent
+from src.env_manager import ParallelEnvManager
 
 def train_dqn(agent: DQNAgent, env_manager: ParallelEnvManager, epsilon: float):
     num_envs = env_manager.num_envs
@@ -50,30 +47,3 @@ def train_dqn(agent: DQNAgent, env_manager: ParallelEnvManager, epsilon: float):
             target_net_filename = f"saved_models/dqn_target_ep_{episode}.weights.h5"
             agent.q_network.save_weights(q_net_filename)
             agent.target_network.save_weights(target_net_filename)
-
-
-if __name__ == "__main__":
-    gpus = tf.config.list_physical_devices("GPU")
-    if gpus:
-        tf.config.experimental.set_memory_growth(gpus[0], True)
-        print("Using GPU")
-    else:
-        print("GPU not detected")
-
-    NUM_ENVS = 1
-    NUM_EP = 20
-    STATE_DIM = 16
-    ACTION_DIM = 4
-
-    # training_sim = subprocess.Popen(
-    #     ["../../DQNTrainer/build/DQNTrainer", f"{NUM_ENVS}"],
-    #     stdout = subprocess.PIPE,
-    #     stderr = subprocess.PIPE
-    # )
-    agent_2048 = DQNAgent(STATE_DIM, ACTION_DIM)
-    env_man = ParallelEnvManager(NUM_ENVS)
-
-    # tf.profiler.experimental.start("logs/profile")
-    train_dqn(agent_2048, env_man, epsilon=0.1)
-    # tf.profiler.experimental.stop()
-    # training_sim.terminate()

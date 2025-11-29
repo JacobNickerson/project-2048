@@ -1,10 +1,9 @@
-from typing import List
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import optimizers
-from model import DQN
-from buffer import ReplayBuffer, State, Action, Reward, Done
-from utils import unpack_state
+from src.model import DQN
+from src.buffer import ReplayBuffer
+from src.utils import unpack_state
 
 class DQNAgent:
     def __init__(

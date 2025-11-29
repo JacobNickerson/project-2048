@@ -1,6 +1,6 @@
 from typing import List
 import tensorflow as tf
-from tensorflow.keras import layers, Model
+from tensorflow.keras import layers, Model 
 
 class DQN(Model):
     def __init__(self, state_dim: int, action_dim: int, hidden_units: List[int] = [128, 128]) -> None:
