@@ -15,6 +15,7 @@ find_package(pybind11 REQUIRED)
 find_package(doctest)
 
 set(SRC_BINARY1
+    DQNTrainer/src/shared_memory_structures.cpp
     DQNTrainer/src/look_up_table.cpp
     DQNTrainer/src/manager.cpp
     DQNTrainer/src/simulator.cpp
@@ -23,6 +24,7 @@ set(SRC_BINARY1
 )
 
 set(SRC_BINARY2
+    DQNTrainer/src/shared_memory_structures.cpp
     DQNTrainer/src/look_up_table.cpp
     DQNTrainer/src/manager.cpp
     DQNTrainer/src/simulator.cpp
@@ -31,6 +33,7 @@ set(SRC_BINARY2
 )
 
 set(SRC_BINARY3
+    DQNTrainer/src/shared_memory_structures.cpp
     DQNTrainer/src/look_up_table.cpp
     DQNTrainer/src/simulator.cpp
     DQNTrainer/src/game.cpp
@@ -54,6 +57,7 @@ set(SIMULATOR_TESTS
 )
 
 set(SRC_PYTHON_MODULE
+    DQNTrainer/src/shared_memory_structures.cpp
     DQNTrainer/src/pybindings.cpp
 )
 
@@ -77,12 +81,14 @@ set_target_properties(PySharedMemoryInterface PROPERTIES
 )
 
 # Add custom command to generate stub
-add_custom_command(
-    TARGET PySharedMemoryInterface POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/DQNModel/src
-            python3 -m pybind11_stubgen PySharedMemoryInterface -o ${CMAKE_CURRENT_SOURCE_DIR}/DQNModel/src
-    COMMENT "Generating .pyi stubs for mylib"
-)
+if (GENERATE_PY_STUB)
+    add_custom_command(
+        TARGET PySharedMemoryInterface POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E env PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}/DQNModel/src
+                python3 -m pybind11_stubgen PySharedMemoryInterface -o ${CMAKE_CURRENT_SOURCE_DIR}/DQNModel/src
+        COMMENT "Generating .pyi stubs for mylib"
+    )
+endif()
 
 if (ENABLE_TESTS)
     # Add test binaries
