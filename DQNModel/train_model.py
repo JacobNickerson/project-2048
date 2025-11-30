@@ -3,7 +3,7 @@
 from argparse import ArgumentParser
 import tensorflow as tf
 from src.agent import DQNAgent
-from src.env_manager import ParallelEnvManager, PyEnvManager
+from src.env_manager import CPPEnvManager, PyEnvManager
 from src.train import train_dqn, train_python_dqn
 
 def main():
@@ -36,7 +36,7 @@ def main():
             #     stdout = subprocess.PIPE,
             #     stderr = subprocess.PIPE
             # )
-            env_man = ParallelEnvManager(args.num_env)
+            env_man = CPPEnvManager(args.num_env)
             train_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval,episode_count=args.ep_count)
         case _:
             print(f"Environment type {args.env_type} not recognized, valid options: \"py\" and \"cpp\"")
