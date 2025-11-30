@@ -13,7 +13,7 @@ def main():
     else:
         print("GPU not detected")
 
-    NUM_ENVS = 1
+    NUM_ENVS = 15
     STATE_DIM = 16
     ACTION_DIM = 4
 
@@ -26,7 +26,7 @@ def main():
     env_man = ParallelEnvManager(NUM_ENVS)
 
     # tf.profiler.experimental.start("logs/profile")
-    train_dqn(agent_2048, env_man, epsilon=0.1)
+    train_dqn(agent_2048, env_man, epsilon=0.1, save_every=100)
     # tf.profiler.experimental.stop()
     # training_sim.terminate()
     
