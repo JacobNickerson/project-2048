@@ -50,13 +50,8 @@ struct PySharedMemoryInterface {
         );
     }
 
-    // NOTE: Should only be called when the simulation has for sure read the response
-    bool putResponse(int id, Move move) {
-        // slow terrible way of waiting for env to read and mark as read
-        while (!move_array[id].read.load()) {}
-        move_array[id].move = move;
-        move_array[id].read.store(false);
-        return true;
+    void putResponse(int id, Move move) {
+        write_slot(&move_array[id], move);
     }
 };
 

@@ -22,11 +22,11 @@ class Simulator {
         Message generateMessage() const;
 
         // Returns the score of the current board 
-        uint32_t getScore() const;
+        int getScore() const;
 
         // converter functions, not sure if they're needed but might be helpful
-        uint64_t convertBoardToPacked() const;
-        std::array<uint8_t,16> convertBoardToUnpacked() const;
+        uint64_t convertCurrentBoardToPacked() const;
+        std::array<uint8_t,16> convertCurrentBoardToUnpacked() const;
 
         // Initializes or reinitializes the board to a valid starting state
         void init();
@@ -39,7 +39,8 @@ class Simulator {
         std::array<uint16_t,4> prev_board; // stored for easy calculation of rewards 
         XorShift32 rng;
         const RowEntry* MOVE_TABLE = nullptr;
-        uint32_t score{0};
+        int score{0};
+        int prev_score{0};
         bool game_ended{false};
 
         // Shifts the entire board in a direction, merging tiles at most once
@@ -56,4 +57,8 @@ class Simulator {
         inline void setValue(uint8_t index, uint8_t val) { board[index/4] |= (val << shiftAmt(index)); } 
         bool rowCanMoveLeft(uint16_t row) const;
         double getReward() const;
+
+        // Converters
+        uint64_t convertBoardToPacked(const std::array<uint16_t,4>& board) const;
+        std::array<uint8_t,16> convertBoardToUnpacked(const std::array<uint16_t,4>& board) const;
 };

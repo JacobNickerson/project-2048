@@ -2,6 +2,8 @@
 #include <boost/interprocess/detail/os_file_functions.hpp>
 #include <boost/interprocess/interprocess_fwd.hpp>
 #include <random>
+#include <bitset>
+#include <iostream>
 
 #include "game.hpp"
 #include "look_up_table.hpp"

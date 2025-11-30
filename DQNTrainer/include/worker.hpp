@@ -4,7 +4,6 @@
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <cstdint>
 #include "lock_queue.hpp"
-#include "look_up_table.hpp"
 #include "shared_memory_structures.hpp"
 #include "simulator.hpp"
 
@@ -13,11 +12,7 @@ class Worker {
         Worker(
             uint8_t id,
             unsigned rng_seed,
-            ProcessControlFlags* control_flags,
-            Message* message_buffer,
-            LockQueue<Message>* message_queue,
-            ResponseCell* DQN_move_array,
-            const RowEntry* move_lookup_table
+            SharedMemoryStructures shm_structures
         );
 
         // Decrements the shared control flag for unready workers, and sets the ready flag

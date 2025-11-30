@@ -9,6 +9,8 @@
 #include <boost/interprocess/managed_shared_memory.hpp>
 #include <boost/process/v1.hpp>
 #include <cstdint>
+#include <iostream>
+#include <bitset>
 
 namespace bip = boost::interprocess;
 
@@ -51,14 +53,16 @@ struct Message {
 
 #pragma pack(push, 1)
 struct ResponseCell { 
-    std::atomic<bool> read = true;
+    std::atomic<uint32_t> ready = 0; // 0 == not ready, 1 == ready
     uint8_t move;
 };
 #pragma pack(pop)
 
+void write_slot(ResponseCell *s, uint8_t move);
+uint8_t wait_read_slot(ResponseCell *s);
+
 struct SharedMemoryStructures {
-    SharedMemoryStructures() {
-        auto shm = bip::managed_shared_memory(bip::open_only, SHARED_MEMORY_NAME);
+    SharedMemoryStructures(bip::managed_shared_memory& shm) {
         pcf = shm.find<ProcessControlFlags>(CONTROL_FLAGS_NAME).first;
         if (!pcf) {
             std::cerr << "Could not find pcf\n";
@@ -86,5 +90,5 @@ struct SharedMemoryStructures {
     Message* mb = nullptr;
     LockQueue<Message>* mq = nullptr;
     ResponseCell* mva = nullptr;
-    RowEntry* mlut = nullptr;
+    const RowEntry* mlut = nullptr;
 };

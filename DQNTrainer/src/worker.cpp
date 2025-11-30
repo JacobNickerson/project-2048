@@ -1,6 +1,5 @@
 #include "worker.hpp"
 #include "lock_queue.hpp"
-#include "look_up_table.hpp"
 #include "shared_memory_structures.hpp"
 #include "simulator.hpp"
 #include <boost/interprocess/interprocess_fwd.hpp>
@@ -11,21 +10,17 @@
 Worker::Worker(
     uint8_t id,
     unsigned rng_seed,
-    ProcessControlFlags* control_flags,
-    Message* message_buffer,
-    LockQueue<Message>* message_queue,
-    ResponseCell* DQN_move_array,
-    const RowEntry* move_lookup_table
+    SharedMemoryStructures shm_structures
 ) : 
     id(id),
-    simulator(id,rng_seed,move_lookup_table),
-    control_flags(control_flags),
-    message_buffer(message_buffer),
-    message_queue(message_queue),
-    DQN_move_array(DQN_move_array) {
+    simulator(id,rng_seed,shm_structures.mlut),
+    control_flags(shm_structures.pcf),
+    message_buffer(shm_structures.mb),
+    message_queue(shm_structures.mq),
+    DQN_move_array(shm_structures.mva) {
         bip::scoped_lock<bip::interprocess_mutex> lock(control_flags->mtx);
         while (!control_flags->manager_ready) {
-            control_flags->cond.wait(lock, [control_flags]{ return control_flags->workers_ready; });
+            control_flags->cond.wait(lock, [this]{ return control_flags->workers_ready; });
         }
     }
         
@@ -38,6 +33,7 @@ void Worker::waitForDQN() {
 
 bool Worker::sendReady() {
     // some type of error checking???
+    std::cout << "Sending ready!\n";
     bip::scoped_lock<bip::interprocess_mutex> lock(control_flags->mtx);
     if (--control_flags->workers_waiting == 0) {
         control_flags->workers_ready = true;
@@ -54,15 +50,10 @@ void Worker::simulate() {
     lock.unlock();
     for (;;) {
         // queue will always have at least as many spaces, processes can only take one queue space at a time, thus this should never fail
-        message_queue->push(message_buffer, simulator.generateMessage());
-        while (DQN_move_array[id].read.load()) {
-            // wait for DQN to update
-            // TODO: Better way to wait than busy waiting
-        }
-        Move curr_move = DQN_move_array[id].move;
+        auto msg = simulator.generateMessage();
+        while (!message_queue->push(message_buffer, msg)) {} // spin-lock on attempting to push
+        Move curr_move = wait_read_slot(&DQN_move_array[id]);
         simulator.makeMove(curr_move);
-        DQN_move_array[id].read.store(true);
-        // TODO: Implement method of notifying DQN model that a game has ended
     }
     std::cout << "somehow ended!\n";
 }

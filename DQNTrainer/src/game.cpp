@@ -5,6 +5,8 @@
 #include <boost/interprocess/creation_tags.hpp>
 #include <boost/interprocess/interprocess_fwd.hpp>
 #include <string>
+#include <iostream>
+#include <bitset>
 
 #include "shared_memory_structures.hpp"
 
@@ -19,7 +21,7 @@ GameManager::~GameManager() {
 
 
 void GameManager::printBoard() {
-    auto board = sim.convertBoardToUnpacked();
+    auto board = sim.convertCurrentBoardToUnpacked();
     std::cout << "Score: " << std::to_string(sim.getScore()) << '\n'; 
     for (int i{0}; i < 4; ++i) {
         for (int j{0}; j < 4; ++j) {
@@ -59,7 +61,6 @@ Move GameManager::pollMove() {
 }
 
 bool GameManager::applyMove(Move move) {
-    std::cout << "SANITY CHECK\n";
     return sim.makeMove(move) == 0b00010000;
 }
 
