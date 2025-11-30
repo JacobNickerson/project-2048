@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.keras import optimizers # type: ignore
 from src.model import DQN
 from src.buffer import ReplayBuffer
-from src.utils import unpack_state
+from src.utils import unpack_64bit_state
 
 class DQNAgent:
     def __init__(
@@ -35,7 +35,7 @@ class DQNAgent:
             self.q_network.load_weights(q_net_path)
             self.target_network.load_weights(target_net_path)
 
-    def select_action(self, state: int, epsilon: float, valid_actions: int) -> int:
+    def select_action(self, state: np.ndarray, epsilon: float, valid_actions: int) -> int:
         """
         Select an action using epsilon-greedy, constrained to valid_actions.
         """
@@ -47,8 +47,6 @@ class DQNAgent:
         if np.random.rand() < epsilon:
             # pick randomly among valid actions
             return 1 << np.random.choice(valid_actions_arr)
-
-        state = unpack_state(state)
 
         # Forward pass through the network
         state_tensor = tf.convert_to_tensor([state], dtype=tf.float32)
@@ -70,8 +68,8 @@ class DQNAgent:
                 return
 
             packed_states, actions, rewards, packed_next_states, dones = self.replay_buffer.sample(self.batch_size)
-            states = np.array([unpack_state(s) for s in packed_states], dtype=np.int8)
-            next_states = np.array([unpack_state(s) for s in packed_next_states], dtype=np.int8)
+            states = np.array([unpack_64bit_state(s) for s in packed_states], dtype=np.int8)
+            next_states = np.array([unpack_64bit_state(s) for s in packed_next_states], dtype=np.int8)
             states_tensor = tf.convert_to_tensor(states, dtype=tf.float32)
             next_states_tensor = tf.convert_to_tensor(next_states, dtype=tf.float32)
             actions_tensor = tf.convert_to_tensor(actions, dtype=tf.int32)

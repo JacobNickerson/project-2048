@@ -11,10 +11,10 @@ class ReplayBuffer:
     def __init__(self, capacity: int, state_shape: Tuple[int, ...]) -> None:
         self.capacity: int = capacity
         self.state_shape: Tuple[int, ...] = state_shape
-        self.states: np.ndarray = np.zeros((capacity, *state_shape), dtype=np.uint64)
+        self.states: np.ndarray = np.zeros((capacity, *state_shape), dtype=np.ndarray)
+        self.next_states: np.ndarray = np.zeros((capacity, *state_shape), dtype=np.ndarray)
         self.actions: np.ndarray = np.zeros((capacity,), dtype=np.uint8)
         self.rewards: np.ndarray = np.zeros((capacity,), dtype=np.float64)
-        self.next_states: np.ndarray = np.zeros((capacity, *state_shape), dtype=np.uint64)
         self.dones: np.ndarray = np.zeros((capacity,), dtype=np.bool)
         self.idx: int = 0
         self.size: int = 0

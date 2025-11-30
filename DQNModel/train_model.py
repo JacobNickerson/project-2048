@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
+from argparse import ArgumentParser
 import tensorflow as tf
 from src.agent import DQNAgent
-from src.env_manager import ParallelEnvManager
-from src.train import train_dqn
+from src.env_manager import ParallelEnvManager, PyEnvManager
+from src.train import train_dqn, train_python_dqn
 
 def main():
     gpus = tf.config.list_physical_devices("GPU")
@@ -13,23 +14,32 @@ def main():
     else:
         print("GPU not detected")
 
-    NUM_ENVS = 15
+    parser = ArgumentParser()
+    parser.add_argument("--num-env",type=int,required=True)
+    parser.add_argument("--epsilon",type=float,required=False,default=0.1)
+    parser.add_argument("--env-type",type=str,required=False,default="py")
+    parser.add_argument("--ep-save-interval",type=int,required=False,default=100)
+    args = parser.parse_args()
+
     STATE_DIM = 16
     ACTION_DIM = 4
 
-    # training_sim = subprocess.Popen(
-    #     ["../../DQNTrainer/build/DQNTrainer", f"{NUM_ENVS}"],
-    #     stdout = subprocess.PIPE,
-    #     stderr = subprocess.PIPE
-    # )
     agent_2048 = DQNAgent(STATE_DIM, ACTION_DIM)
-    env_man = ParallelEnvManager(NUM_ENVS)
+    match(args.env_type):
+        case "py":
+            env_man = PyEnvManager(args.num_env)
+            train_python_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval)
+        case "cpp":
+            # training_sim = subprocess.Popen(
+            #     ["../../DQNTrainer/build/DQNTrainer", f"{NUM_ENVS}"],
+            #     stdout = subprocess.PIPE,
+            #     stderr = subprocess.PIPE
+            # )
+            env_man = ParallelEnvManager(args.num_env)
+            train_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval)
+        case _:
+            print(f"Environment type {args.env_type} not recognized, valid options: \"py\" and \"cpp\"")
 
-    # tf.profiler.experimental.start("logs/profile")
-    train_dqn(agent_2048, env_man, epsilon=0.1, save_every=100)
-    # tf.profiler.experimental.stop()
-    # training_sim.terminate()
     
-
 if __name__ == "__main__":
     main()
