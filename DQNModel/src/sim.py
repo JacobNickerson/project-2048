@@ -30,7 +30,6 @@ class Simulator:
         generates a random tile
         """
         self.prev_board = self.board.copy()
-        self.score += self.score_look_up_table[self.board].sum()
         match(move):
             case Move.LEFT.value:
                 self.__move_left()
@@ -43,7 +42,7 @@ class Simulator:
             case Move.NOMOVE.value:
                 self.is_terminated = True
             case _:
-                self.is_terminated = True
+                raise ValueError("bruh")
         self.__populate_random_cell(self.board)
     
     def reset(self) -> None:
@@ -88,13 +87,21 @@ class Simulator:
         Prints the current board state to the terminal
         """
         cells = self.__unpack_board(self.board)
-        print(cells)
+        cells = np.array([0 if cell == 0 else 1 << cell for cell in cells])
+        print(cells.reshape((4,4)))
+
+    def get_board(self, packed=True):
+        if packed:
+            return self.board
+        else:
+            return self.__unpack_board(self.board)
                 
     def __move_left(self) -> None:
         """
         Sets the previous board to the current board, then shifts all cells in the current
         board left and merging where expected
         """
+        self.score += self.score_look_up_table[self.board].sum()
         self.board[:] = self.move_look_up_table[self.board]
 
     def __move_right(self) -> None:
@@ -103,6 +110,7 @@ class Simulator:
         board right and merging where expected
         """
         self.board = self.__reverse_board(self.board)
+        self.score += self.score_look_up_table[self.board].sum()
         self.board[:] = self.move_look_up_table[self.board]
         self.board = self.__reverse_board(self.board)
 
@@ -112,6 +120,7 @@ class Simulator:
         board up and merging where expected
         """
         self.board = self.__transpose_board(self.board)
+        self.score += self.score_look_up_table[self.board].sum()
         self.board[:] = self.move_look_up_table[self.board]
         self.board = self.__transpose_board(self.board)
 
@@ -122,6 +131,7 @@ class Simulator:
         """
         self.board = self.__transpose_board(self.board)
         self.board = self.__reverse_board(self.board)
+        self.score += self.score_look_up_table[self.board].sum()
         self.board[:] = self.move_look_up_table[self.board]
         self.board = self.__reverse_board(self.board)
         self.board = self.__transpose_board(self.board)
@@ -249,7 +259,6 @@ class Simulator:
         m2 = (t2 != 0) & (t2 == t3)
 
         return c0 | c1 | c2 | m0 | m1 | m2
-
 
 
 class LookupTable:

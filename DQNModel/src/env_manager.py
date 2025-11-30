@@ -7,7 +7,7 @@ message_dtype = np.dtype([
     ('id', np.uint8),
     ('board', np.uint64),
     ('moves', np.uint8),
-    ('reward', np.float32)
+    ('reward', np.float64)
 ])
 
 pymessage_dtype = np.dtype([

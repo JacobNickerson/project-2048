@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--epsilon",type=float,required=False,default=0.1)
     parser.add_argument("--env-type",type=str,required=False,default="py")
     parser.add_argument("--ep-save-interval",type=int,required=False,default=100)
+    parser.add_argument("--ep-count",type=int,required=False,default=float('inf'))
     args = parser.parse_args()
 
     STATE_DIM = 16
@@ -28,7 +29,7 @@ def main():
     match(args.env_type):
         case "py":
             env_man = PyEnvManager(args.num_env)
-            train_python_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval)
+            train_python_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval,episode_count=args.ep_count)
         case "cpp":
             # training_sim = subprocess.Popen(
             #     ["../../DQNTrainer/build/DQNTrainer", f"{NUM_ENVS}"],
@@ -36,7 +37,7 @@ def main():
             #     stderr = subprocess.PIPE
             # )
             env_man = ParallelEnvManager(args.num_env)
-            train_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval)
+            train_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval,episode_count=args.ep_count)
         case _:
             print(f"Environment type {args.env_type} not recognized, valid options: \"py\" and \"cpp\"")
 

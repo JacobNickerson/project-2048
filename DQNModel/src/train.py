@@ -2,12 +2,14 @@ import numpy as np
 from src.agent import DQNAgent
 from src.env_manager import ParallelEnvManager, PyEnvManager
 from src.utils import unpack_64bit_state
+from time import time
 
-def train_dqn(agent: DQNAgent, env_manager: ParallelEnvManager, epsilon: float, save_every=1000):
+def train_dqn(agent: DQNAgent, env_manager: ParallelEnvManager, epsilon: float, save_every=1000, episode_count=float('inf')):
     num_envs = env_manager.num_envs
 
     episode = 0
-    while True:
+    start = time()
+    while episode < episode_count:
         episode += 1
         print(f"episode: {episode}")
         active_envs = set(range(num_envs))
@@ -49,10 +51,13 @@ def train_dqn(agent: DQNAgent, env_manager: ParallelEnvManager, epsilon: float, 
             target_net_filename = f"saved_models/dqn_target_ep_{episode}.weights.h5"
             agent.q_network.save_weights(q_net_filename)
             agent.target_network.save_weights(target_net_filename)
+    end = time()
+    print(f"{end-start}s to run 5 episodes")
 
-def train_python_dqn(agent: DQNAgent, env_manager: PyEnvManager, epsilon: float, save_every=1000):
+def train_python_dqn(agent: DQNAgent, env_manager: PyEnvManager, epsilon: float, save_every=1000, episode_count=float('inf')):
     episode = 0
-    while True:
+    start = time()
+    while episode < episode_count:
         episode += 1
         print(f"episode: {episode}")
         env_manager.reset_all()
@@ -88,3 +93,9 @@ def train_python_dqn(agent: DQNAgent, env_manager: PyEnvManager, epsilon: float,
             target_net_filename = f"saved_models/dqn_target_ep_{episode}.weights.h5"
             agent.q_network.save_weights(q_net_filename)
             agent.target_network.save_weights(target_net_filename)
+    end = time()
+    print(f"{end-start}s to run 5 episodes")
+    for env in env_manager.envs:
+        print(f"Env {env.id} score: {env.score}")
+        env.print_board()
+        print(f"Estimated score: {estimate_score(env.get_board(False))}")
