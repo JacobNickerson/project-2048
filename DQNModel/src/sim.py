@@ -14,7 +14,7 @@ class Move(Enum):
 
 class Simulator:
     def __init__(self, id: int, move_look_up_table: NDArray[np.uint16], score_look_up_table: NDArray[np.object_]):
-        self.id = id
+        self.idx = id
         self.move_look_up_table = move_look_up_table
         self.score_look_up_table = score_look_up_table
         self.board = np.zeros(4, dtype=np.uint16)
@@ -62,7 +62,7 @@ class Simulator:
         Returns a tuple of form: (ID, Current state, Previous State, Valid Moves, Reward, Terminated)
         """
         return (
-            self.id,
+            self.idx,
             self.__unpack_board(self.board),
             self.__unpack_board(self.prev_board),
             self.__get_valid_moves(self.board),
@@ -91,6 +91,9 @@ class Simulator:
         print(cells.reshape((4,4)))
 
     def get_board(self, packed=True):
+        """
+        Returns the current board as either an array of packed bits or an unpacked array of integers
+        """
         if packed:
             return self.board
         else:

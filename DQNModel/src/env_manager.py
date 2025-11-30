@@ -20,7 +20,7 @@ pymessage_dtype = np.dtype([
 ])
 
 
-class ParallelEnvManager:
+class CPPEnvManager:
     def __init__(self, num_envs: int):
         self.num_envs = num_envs
         self.shm = SharedMemoryInterface()

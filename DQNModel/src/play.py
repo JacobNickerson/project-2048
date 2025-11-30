@@ -1,7 +1,7 @@
 from src.agent import DQNAgent
-from src.env_manager import ParallelEnvManager, PyEnvManager
+from src.env_manager import CPPEnvManager, PyEnvManager
 
-def play_dqn(agent: DQNAgent, env_manager: ParallelEnvManager):
+def play_dqn(agent: DQNAgent, env_manager: CPPEnvManager):
     env_manager.reset_all()  # reset all environments at episode start
     while True:
         state = env_manager.pop_results()

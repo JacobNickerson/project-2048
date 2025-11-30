@@ -3,7 +3,7 @@
 import tensorflow as tf
 from argparse import ArgumentParser
 from src.agent import DQNAgent
-from src.env_manager import ParallelEnvManager, PyEnvManager
+from src.env_manager import CPPEnvManager, PyEnvManager
 from src.play import play_dqn, play_py_dqn
 
 def main():
@@ -30,7 +30,7 @@ def main():
             env_man = PyEnvManager(1)
             play_py_dqn(agent_2048,env_man)
         case "cpp":
-            env_man = ParallelEnvManager(1)
+            env_man = CPPEnvManager(1)
             play_dqn(agent_2048,env_man)
         case _:
             print(f"Environment type {args.env_type} not recognized, valid options: \"py\" and \"cpp\"")
