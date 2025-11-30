@@ -40,21 +40,7 @@ set(SRC_BINARY3
     DQNTrainer/src/run_game.cpp
 )
 
-set(LOOK_UP_TABLE_TESTS
-    DQNTrainer/src/look_up_table.cpp
-    DQNTrainer/src/manager.cpp
-    DQNTrainer/src/simulator.cpp
-    DQNTrainer/src/worker.cpp
-    DQNTrainer/tests/look_up_table_tests.cpp
-)
 
-set(SIMULATOR_TESTS
-    DQNTrainer/src/look_up_table.cpp
-    DQNTrainer/src/manager.cpp
-    DQNTrainer/src/simulator.cpp
-    DQNTrainer/src/worker.cpp
-    DQNTrainer/tests/simulator_tests.cpp
-)
 
 set(SRC_PYTHON_MODULE
     DQNTrainer/src/shared_memory_structures.cpp
@@ -91,6 +77,16 @@ if (GENERATE_PY_STUB)
 endif()
 
 if (ENABLE_TESTS)
+    set(LOOK_UP_TABLE_TESTS
+        DQNTrainer/src/look_up_table.cpp
+        DQNTrainer/tests/look_up_table_tests.cpp
+    )
+
+    set(SIMULATOR_TESTS
+        DQNTrainer/src/look_up_table.cpp
+        DQNTrainer/src/simulator.cpp
+        DQNTrainer/tests/simulator_tests.cpp
+    )
     # Add test binaries
     add_executable(LookUpTableTests ${LOOK_UP_TABLE_TESTS})
     target_include_directories(LookUpTableTests PRIVATE DQNTrainer/include)

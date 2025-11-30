@@ -23,4 +23,5 @@ uint16_t reverseRow(uint16_t row);
 std::array<uint16_t,4> transposeBoard(std::array<uint16_t,4> board);
 
 // returns {row,score increase}
-std::pair<uint16_t,int> rowShiftLeft(uint16_t row);std::array<RowEntry, MOVE_COUNT> generateLookupTable();
+std::pair<uint16_t,int> rowShiftLeft(uint16_t row);
+std::array<RowEntry, MOVE_COUNT> generateLookupTable();
