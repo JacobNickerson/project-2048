@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import optimizers
+from tensorflow.keras import optimizers # type: ignore
 from src.model import DQN
 from src.buffer import ReplayBuffer
 from src.utils import unpack_state
@@ -29,6 +29,11 @@ class DQNAgent:
 
         self.optimizer: optimizers.Optimizer = optimizers.Adam(learning_rate=lr)
         self.replay_buffer: ReplayBuffer = ReplayBuffer(buffer_capacity, (state_dim,))
+
+    def load_weights(self, q_net_path: str, target_net_path: str) -> None:
+        with tf.device("/GPU:0"):
+            self.q_network.load_weights(q_net_path)
+            self.target_network.load_weights(target_net_path)
 
     def select_action(self, state: int, epsilon: float, valid_actions: int) -> int:
         """
