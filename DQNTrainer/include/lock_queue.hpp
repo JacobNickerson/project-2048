@@ -31,32 +31,31 @@ class LockQueue {
             return (h >= t) ? h-t : h-t+capacity;
         }
         bool push(T* buffer, T item) noexcept {
-            auto next = (head + 1) & mask; 
             bip::scoped_lock<bip::interprocess_mutex> lock(mutex);
+            auto next = (head + 1) & mask; 
+            cond.wait(lock, [&]{ return next != tail; });
             buffer[head] = item;
             head = next;
-            cond.notify_all();
             return true;
         }
         std::optional<T> pop(T* buffer) noexcept {
+            bip::scoped_lock<bip::interprocess_mutex> lock(mutex);
             if (tail == head) { return std::nullopt; }
             auto next = (tail + 1) & mask; 
             auto val = buffer[tail];
             tail = next;
+            cond.notify_one();
             return val;
         }
         std::vector<T> popBatch(T* buffer) noexcept {
-            size_t h = head;
-            if (tail == h) {
-                return std::vector<T>();
-            }
-            static constexpr auto size = sizeof(T);
-            auto read_size = (tail < h) ? (h-tail) : (h-tail+capacity);
+            bip::scoped_lock<bip::interprocess_mutex> lock(mutex);
             std::vector<T> data;
+            auto read_size = (tail < head) ? (head-tail) : (head-tail+capacity);
             data.reserve(read_size);
-            for (;tail != h; tail = (tail+1)&mask) {
+            for (;tail != head; tail = (tail+1)&mask) {
                 data.emplace_back(buffer[tail]);
             }
+            cond.notify_all();
             return data;
         }
 
