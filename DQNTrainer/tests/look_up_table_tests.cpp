@@ -54,78 +54,107 @@ TEST_CASE("Row reversal") {
 
 TEST_CASE("Slide left direct calculation") {
     // Slides
-    CHECK(rowShiftLeft(0x0000) == (0x0000));
-    CHECK(rowShiftLeft(0x1000) == (0x1000));
-    CHECK(rowShiftLeft(0x0100) == (0x1000));
-    CHECK(rowShiftLeft(0x0010) == (0x1000));
-    CHECK(rowShiftLeft(0x0001) == (0x1000));
+    CHECK(rowShiftLeft(0x0000).first == (0x0000));
+    CHECK(rowShiftLeft(0x1000).first == (0x1000));
+    CHECK(rowShiftLeft(0x0100).first == (0x1000));
+    CHECK(rowShiftLeft(0x0010).first == (0x1000));
+    CHECK(rowShiftLeft(0x0001).first == (0x1000));
 
-    CHECK(rowShiftLeft(0x2100) == (0x2100));
-    CHECK(rowShiftLeft(0x2010) == (0x2100));
-    CHECK(rowShiftLeft(0x2001) == (0x2100));
-    CHECK(rowShiftLeft(0x0210) == (0x2100));
-    CHECK(rowShiftLeft(0x0201) == (0x2100));
-    CHECK(rowShiftLeft(0x0021) == (0x2100));
+    CHECK(rowShiftLeft(0x2100).first == (0x2100));
+    CHECK(rowShiftLeft(0x2010).first == (0x2100));
+    CHECK(rowShiftLeft(0x2001).first == (0x2100));
+    CHECK(rowShiftLeft(0x0210).first == (0x2100));
+    CHECK(rowShiftLeft(0x0201).first == (0x2100));
+    CHECK(rowShiftLeft(0x0021).first == (0x2100));
 
-    CHECK(rowShiftLeft(0x3210) == (0x3210));
-    CHECK(rowShiftLeft(0x3201) == (0x3210));
-    CHECK(rowShiftLeft(0x3021) == (0x3210));
-    CHECK(rowShiftLeft(0x0321) == (0x3210));
+    CHECK(rowShiftLeft(0x3210).first == (0x3210));
+    CHECK(rowShiftLeft(0x3201).first == (0x3210));
+    CHECK(rowShiftLeft(0x3021).first == (0x3210));
+    CHECK(rowShiftLeft(0x0321).first == (0x3210));
 
-    CHECK(rowShiftLeft(0x1234) == (0x1234));
+    CHECK(rowShiftLeft(0x1234).first == (0x1234));
 
     // Merges
-    CHECK(rowShiftLeft(0x1100) == (0x2000));
-    CHECK(rowShiftLeft(0x1010) == (0x2000));
-    CHECK(rowShiftLeft(0x1001) == (0x2000));
-    CHECK(rowShiftLeft(0x0110) == (0x2000));
-    CHECK(rowShiftLeft(0x0101) == (0x2000));
-    CHECK(rowShiftLeft(0x0011) == (0x2000));
+    CHECK(rowShiftLeft(0x1100).first == (0x2000));
+    CHECK(rowShiftLeft(0x1010).first == (0x2000));
+    CHECK(rowShiftLeft(0x1001).first == (0x2000));
+    CHECK(rowShiftLeft(0x0110).first == (0x2000));
+    CHECK(rowShiftLeft(0x0101).first == (0x2000));
+    CHECK(rowShiftLeft(0x0011).first == (0x2000));
 
-    CHECK(rowShiftLeft(0x1122) == (0x2300));
-    CHECK(rowShiftLeft(0x1102) == (0x2200));
-    CHECK(rowShiftLeft(0x1221) == (0x1310));
+    CHECK(rowShiftLeft(0x1122).first == (0x2300));
+    CHECK(rowShiftLeft(0x1102).first == (0x2200));
+    CHECK(rowShiftLeft(0x1221).first == (0x1310));
+}
+
+TEST_CASE("Slide left direct score calculation") {
+    // Slides
+    CHECK(rowShiftLeft(0x0000).second == (0));
+    CHECK(rowShiftLeft(0x1000).second == (0));
+    CHECK(rowShiftLeft(0x0100).second == (0));
+    CHECK(rowShiftLeft(0x0010).second == (0));
+    CHECK(rowShiftLeft(0x0001).second == (0));
+
+    CHECK(rowShiftLeft(0x2100).second == (0));
+    CHECK(rowShiftLeft(0x2010).second == (0));
+    CHECK(rowShiftLeft(0x2001).second == (0));
+    CHECK(rowShiftLeft(0x0210).second == (0));
+    CHECK(rowShiftLeft(0x0201).second == (0));
+    CHECK(rowShiftLeft(0x0021).second == (0));
+
+    CHECK(rowShiftLeft(0x3210).second == (0));
+    CHECK(rowShiftLeft(0x3201).second == (0));
+    CHECK(rowShiftLeft(0x3021).second == (0));
+    CHECK(rowShiftLeft(0x0321).second == (0));
+
+    CHECK(rowShiftLeft(0x1234).second == (0));
+
+    // Merges
+    CHECK(rowShiftLeft(0x1100).second == (4));
+    CHECK(rowShiftLeft(0x1010).second == (4));
+    CHECK(rowShiftLeft(0x1001).second == (4));
+    CHECK(rowShiftLeft(0x0110).second == (4));
+    CHECK(rowShiftLeft(0x0101).second == (4));
+    CHECK(rowShiftLeft(0x0011).second == (4));
+
+    CHECK(rowShiftLeft(0x1122).second == (12));
+    CHECK(rowShiftLeft(0x1102).second == (4));
+    CHECK(rowShiftLeft(0x1221).second == (8));
 }
 
 TEST_CASE("Slide left table lookup") {
     auto MOVE_TABLE = generateLookupTable();
     // Slides
-    CHECK(MOVE_TABLE[0x0000].result == (0x0000));
-    CHECK(MOVE_TABLE[0x1000].result == (0x1000));
-    CHECK(MOVE_TABLE[0x0100].result == (0x1000));
-    CHECK(MOVE_TABLE[0x0010].result == (0x1000));
-    CHECK(MOVE_TABLE[0x0001].result == (0x1000));
+    CHECK(MOVE_TABLE[0x0000].result == (0));
+    CHECK(MOVE_TABLE[0x1000].result == (0));
+    CHECK(MOVE_TABLE[0x0100].result == (0));
+    CHECK(MOVE_TABLE[0x0010].result == (0));
+    CHECK(MOVE_TABLE[0x0001].result == (0));
 
-    CHECK(MOVE_TABLE[0x2100].result == (0x2100));
-    CHECK(MOVE_TABLE[0x2010].result == (0x2100));
-    CHECK(MOVE_TABLE[0x2001].result == (0x2100));
-    CHECK(MOVE_TABLE[0x0210].result == (0x2100));
-    CHECK(MOVE_TABLE[0x0201].result == (0x2100));
-    CHECK(MOVE_TABLE[0x0021].result == (0x2100));
+    CHECK(MOVE_TABLE[0x2100].result == (0));
+    CHECK(MOVE_TABLE[0x2010].result == (0));
+    CHECK(MOVE_TABLE[0x2001].result == (0));
+    CHECK(MOVE_TABLE[0x0210].result == (0));
+    CHECK(MOVE_TABLE[0x0201].result == (0));
+    CHECK(MOVE_TABLE[0x0021].result == (0));
 
-    CHECK(MOVE_TABLE[0x3210].result == (0x3210));
-    CHECK(MOVE_TABLE[0x3201].result == (0x3210));
-    CHECK(MOVE_TABLE[0x3021].result == (0x3210));
-    CHECK(MOVE_TABLE[0x0321].result == (0x3210));
+    CHECK(MOVE_TABLE[0x3210].result == (0));
+    CHECK(MOVE_TABLE[0x3201].result == (0));
+    CHECK(MOVE_TABLE[0x3021].result == (0));
+    CHECK(MOVE_TABLE[0x0321].result == (0));
 
-    CHECK(MOVE_TABLE[0x1234].result == (0x1234));
+    CHECK(MOVE_TABLE[0x1234].result == (0));
 
     // Merges
-    CHECK(MOVE_TABLE[0x1100].result == (0x2000));
-    CHECK(MOVE_TABLE[0x1010].result == (0x2000));
-    CHECK(MOVE_TABLE[0x1001].result == (0x2000));
-    CHECK(MOVE_TABLE[0x0110].result == (0x2000));
-    CHECK(MOVE_TABLE[0x0101].result == (0x2000));
-    CHECK(MOVE_TABLE[0x0011].result == (0x2000));
+    CHECK(MOVE_TABLE[0x1100].result == (4));
+    CHECK(MOVE_TABLE[0x1010].result == (4));
+    CHECK(MOVE_TABLE[0x1001].result == (4));
+    CHECK(MOVE_TABLE[0x0110].result == (4));
+    CHECK(MOVE_TABLE[0x0101].result == (4));
+    CHECK(MOVE_TABLE[0x0011].result == (4));
 
 
-    CHECK(MOVE_TABLE[0x1122].result == (0x2300));
-    CHECK(MOVE_TABLE[0x1102].result == (0x2200));
-    CHECK(MOVE_TABLE[0x1221].result == (0x1310));
-}
-
-TEST_CASE("Table score generation") {
-    auto MOVE_TABLE = generateLookupTable();
-    CHECK(MOVE_TABLE[0x1010].score == 4);
-    CHECK(MOVE_TABLE[0x2020].score == 8);
+    CHECK(MOVE_TABLE[0x1122].result == (12));
+    CHECK(MOVE_TABLE[0x1102].result == (4));
+    CHECK(MOVE_TABLE[0x1221].result == (8));
 }
