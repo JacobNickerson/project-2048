@@ -12,7 +12,7 @@ message_dtype = np.dtype([
 ])
 
 pymessage_dtype = np.dtype([
-    ('id', np.uint8),
+    ('id', np.uint16),
     ('state', np.ndarray),
     ('prev_state', np.ndarray),
     ('moves', np.int64),

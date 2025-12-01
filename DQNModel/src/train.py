@@ -89,8 +89,8 @@ def train_python_dqn(agent: DQNAgent, env_manager: PyEnvManager, epsilon: float,
             gradient_updates = 0
 
         if total_steps >= save_target:
-            q_net_filename = f"saved_models/{file_name}_policy_{total_steps}.weights.h5"
-            target_net_filename = f"saved_models/{file_name}_target_{total_steps}.weights.h5"
+            q_net_filename = f"saved_models/{file_name}_{total_steps}_policy.weights.h5"
+            target_net_filename = f"saved_models/{file_name}_{total_steps}_target.weights.h5"
             agent.q_network.save_weights(q_net_filename)
             agent.target_network.save_weights(target_net_filename)
             save_target += save_every

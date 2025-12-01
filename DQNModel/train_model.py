@@ -29,9 +29,9 @@ def main():
     agent_2048 = DQNAgent(
             STATE_DIM,
             ACTION_DIM,
-            buffer_capacity=500_000,
-            batch_size=512,
-            lr=2e-4
+            buffer_capacity=5_000_000,
+            batch_size=128,
+            lr=9e-5
         )
     match(args.env_type):
         case "py":
