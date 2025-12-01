@@ -4,7 +4,7 @@ from src.env_manager import CPPEnvManager, PyEnvManager
 from src.utils import unpack_64bit_state
 from time import time
 
-def train_dqn(agent: DQNAgent, env_manager: CPPEnvManager, epsilon: float, save_every=1000, episode_count=float('inf')):
+def train_dqn(agent: DQNAgent, env_manager: CPPEnvManager, epsilon: float, save_every=1000, episode_count=float('inf'), file_name="model"):
     num_envs = env_manager.num_envs
 
     episode = 0
@@ -16,6 +16,7 @@ def train_dqn(agent: DQNAgent, env_manager: CPPEnvManager, epsilon: float, save_
     needs_action = [True] * num_envs # used to prevent reprocessing states
     actions = [-1]*num_envs
     while episode < episode_count:
+        step_count += num_envs
         for i in np.arange(num_envs):
             if needs_action[i]:
                 state = states[i]
@@ -45,14 +46,14 @@ def train_dqn(agent: DQNAgent, env_manager: CPPEnvManager, epsilon: float, save_
             agent.sync_target_network()
 
         if episode % save_every == 0:
-            q_net_filename = f"saved_models/dqn_policy_ep_{episode}.weights.h5"
-            target_net_filename = f"saved_models/dqn_target_ep_{episode}.weights.h5"
+            q_net_filename = f"saved_models/{file_name}_policy_{episode}.weights.h5"
+            target_net_filename = f"saved_models/{file_name}_{episode}.weights.h5"
             agent.q_network.save_weights(q_net_filename)
             agent.target_network.save_weights(target_net_filename)
     end = time()
     print(f"{end-start}s to run {episode_count} episodes")
 
-def train_python_dqn(agent: DQNAgent, env_manager: PyEnvManager, epsilon: float, save_every=1000, episode_count=float('inf')):
+def train_python_dqn(agent: DQNAgent, env_manager: PyEnvManager, epsilon: float, save_every=1000, episode_count=float('inf'), file_name="model"):
     episode = 0
     env_manager.reset_all()
     start = time()
@@ -90,8 +91,8 @@ def train_python_dqn(agent: DQNAgent, env_manager: PyEnvManager, epsilon: float,
             
 
         if episode % save_every == 0:
-            q_net_filename = f"saved_models/dqn_policy_ep_{episode}.weights.h5"
-            target_net_filename = f"saved_models/dqn_target_ep_{episode}.weights.h5"
+            q_net_filename = f"saved_models/{file_name}_policy_{episode}.weights.h5"
+            target_net_filename = f"saved_models/{file_name}_target_{episode}.weights.h5"
             agent.q_network.save_weights(q_net_filename)
             agent.target_network.save_weights(target_net_filename)
     end = time()

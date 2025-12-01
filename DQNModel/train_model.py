@@ -20,16 +20,23 @@ def main():
     parser.add_argument("--env-type",type=str,required=False,default="py")
     parser.add_argument("--ep-save-interval",type=int,required=False,default=100)
     parser.add_argument("--ep-count",type=int,required=False,default=float('inf'))
+    parser.add_argument("--output",type=str,required=False,default="model")
     args = parser.parse_args()
 
     STATE_DIM = 16
     ACTION_DIM = 4
 
-    agent_2048 = DQNAgent(STATE_DIM, ACTION_DIM)
+    agent_2048 = DQNAgent(
+            STATE_DIM,
+            ACTION_DIM,
+            buffer_capacity=500_000,
+            batch_size=512,
+            lr=2e-4
+        )
     match(args.env_type):
         case "py":
             env_man = PyEnvManager(args.num_env)
-            train_python_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval,episode_count=args.ep_count)
+            train_python_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval,episode_count=args.ep_count, file_name=args.output)
         case "cpp":
             # training_sim = subprocess.Popen(
             #     ["../../DQNTrainer/build/DQNTrainer", f"{NUM_ENVS}"],
@@ -37,7 +44,7 @@ def main():
             #     stderr = subprocess.PIPE
             # )
             env_man = CPPEnvManager(args.num_env)
-            train_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval,episode_count=args.ep_count)
+            train_dqn(agent_2048, env_man, epsilon=args.epsilon, save_every=args.ep_save_interval,episode_count=args.ep_count, file_name=args.output)
         case _:
             print(f"Environment type {args.env_type} not recognized, valid options: \"py\" and \"cpp\"")
 

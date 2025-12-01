@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import optimizers # type: ignore
-from src.model import DQN
+from src.model import DQN, DuelingDQN
 from src.buffer import ReplayBuffer
 from src.utils import unpack_64bit_state
 
@@ -20,8 +20,8 @@ class DQNAgent:
         self.batch_size: int = batch_size
 
         with tf.device("/GPU:0"):
-            self.q_network: DQN = DQN(state_dim, action_dim)
-            self.target_network: DQN = DQN(state_dim, action_dim)
+            self.q_network: DuelingDQN = DuelingDQN(state_dim, action_dim)
+            self.target_network: DuelingDQN = DuelingDQN(state_dim, action_dim)
             # NOTE: use a dummy to preload the networks on GPU, since they build lazily
             dummy = tf.zeros((1, state_dim), dtype=tf.float32)
             self.q_network(dummy)
@@ -62,30 +62,46 @@ class DQNAgent:
         return 1 << int(np.argmax(mask))
 
     @tf.function
-    def update(self) -> None:
-        with tf.device("/GPU:0"):
-            if self.replay_buffer.size < self.batch_size:
-                return
+    def update(self):
+        if self.replay_buffer.size < self.batch_size:
+            return
 
-            packed_states, actions, rewards, packed_next_states, dones = self.replay_buffer.sample(self.batch_size)
-            states = np.array([unpack_64bit_state(s) for s in packed_states], dtype=np.int8)
-            next_states = np.array([unpack_64bit_state(s) for s in packed_next_states], dtype=np.int8)
-            states_tensor = tf.convert_to_tensor(states, dtype=tf.float32)
-            next_states_tensor = tf.convert_to_tensor(next_states, dtype=tf.float32)
-            actions_tensor = tf.convert_to_tensor(actions, dtype=tf.int32)
-            rewards_tensor = tf.convert_to_tensor(rewards, dtype=tf.float32)
-            dones_tensor = tf.convert_to_tensor(dones, dtype=tf.float32)
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
 
-            next_q = tf.reduce_max(self.target_network(next_states_tensor), axis=1)
-            target_q = rewards_tensor + self.gamma * (1 - dones_tensor) * next_q
+        states = tf.convert_to_tensor(states, tf.float32)
+        next_states = tf.convert_to_tensor(next_states, tf.float32)
+        actions = tf.convert_to_tensor(actions, tf.int32)
+        rewards = tf.convert_to_tensor(rewards, tf.float32)
+        dones = tf.convert_to_tensor(dones, tf.float32)
 
-            with tf.GradientTape() as tape:
-                q_values = self.q_network(states_tensor)
-                action_q = tf.reduce_sum(q_values * tf.one_hot(actions_tensor, self.action_dim), axis=1)
-                loss = tf.reduce_mean(tf.square(target_q - action_q))
+        next_action = tf.argmax(self.q_network(next_states), axis=1)
+        next_q_target = tf.gather(
+            self.target_network(next_states),
+            next_action,
+            batch_dims=1
+        )
 
-            grads = tape.gradient(loss, self.q_network.trainable_variables)
-            self.optimizer.apply_gradients(zip(grads, self.q_network.trainable_variables))
+        target = rewards + self.gamma * (1.0 - dones) * next_q_target
+
+        with tf.GradientTape() as tape:
+            q = self.q_network(states)
+            q_selected = tf.gather(q, actions, batch_dims=1)
+            loss = tf.keras.losses.huber(target, q_selected)
+
+        grads = tape.gradient(loss, self.q_network.trainable_variables)
+        self.optimizer.apply_gradients(zip(grads, self.q_network.trainable_variables))
+
 
     def sync_target_network(self) -> None:
         self.target_network.set_weights(self.q_network.get_weights())
+
+class RandomAgent:
+    def __init__(self, state_dim: int, action_dim: int):
+        self.action_dim = action_dim
+        self.state_dim = state_dim
+
+    def select_action(self, state: np.ndarray, epsilon: float, valid_actions: int) -> int:
+        if (valid_actions & 0b00010000) > 0: # no valid moves, game is ended 
+            return 0b00010000
+        valid_actions_arr = [i for i in range(self.action_dim) if (valid_actions >> i) & 1]
+        return 1 << np.random.choice(valid_actions_arr)

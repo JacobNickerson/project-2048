@@ -14,9 +14,7 @@ def play_dqn(agent: DQNAgent, env_manager: CPPEnvManager):
 
     print(state)
 
-def play_py_dqn(agent: DQNAgent, env_manager: PyEnvManager):
-    env_manager.reset_all()
-    env = env_manager.envs[0]
+def play_py_dqn(agent: DQNAgent, env: PyEnvManager):
     action_count = 0
     while True:
         action = agent.select_action(env.get_board(packed=False),0,env.get_valid_moves())
@@ -24,7 +22,3 @@ def play_py_dqn(agent: DQNAgent, env_manager: PyEnvManager):
         action_count += 1
         if env.is_terminated:
             break
-    print("GAME ENDED")
-    print(env.score)
-    env.print_board()
-    print(f"Actions: {action_count}")

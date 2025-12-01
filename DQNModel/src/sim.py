@@ -21,6 +21,7 @@ class Simulator:
         self.prev_board = np.zeros(4, dtype=np.uint16)
         self.score = 0
         self.is_terminated = False
+        self.valid_moves = Move.NOMOVE.value
         self.reset()
 
     def make_move(self, move: Move) -> None:
@@ -44,6 +45,8 @@ class Simulator:
             case _:
                 raise ValueError("bruh")
         self.__populate_random_cell(self.board)
+        self.valid_moves = self.__get_valid_moves(self.board)
+        self.is_terminated = self.valid_moves == Move.NOMOVE.value
     
     def reset(self) -> None:
         """
@@ -65,7 +68,7 @@ class Simulator:
             self.idx,
             self.__unpack_board(self.board),
             self.__unpack_board(self.prev_board),
-            self.__get_valid_moves(self.board),
+            self.valid_moves,
             self.__get_reward(self.board, self.prev_board),
             self.is_terminated
         )
@@ -186,14 +189,14 @@ class Simulator:
         shift = (3 - col) * 4
         board[row] |= np.uint16((val.bit_length() - 1) << shift)
 
-    def __unpack_board(self, board: NDArray[np.uint16]) -> NDArray[np.uint8]:
+    def __unpack_board(self, board: NDArray[np.uint16]) -> NDArray[np.uint32]:
         """
         board: np.ndarray of shape (4,), dtype=np.uint16
         Returns the unpacked form of a bit-packed board as a np.ndarray of shape (16,), dtype=np.uint8
         """
         shifts = np.array([12, 8, 4, 0], dtype=np.uint16)  # bits per tile
         unpacked = (board[:, None] >> shifts[None, :]) & 0xF  # shape (4,4)
-        return unpacked.ravel().astype(np.uint8)             # flatten to shape (16,)
+        return unpacked.ravel().astype(np.uint32)             # flatten to shape (16,)
     
     def __pack_board(self, board: NDArray[np.uint16]) -> np.uint64:
         arr64 = board.astype(np.uint64)
@@ -215,6 +218,8 @@ class Simulator:
         reward += 0.2 * np.log2(max_val)
         reward += 0.2 * (max_idx in (0,3,12,15))
         reward += 0.1 * empty_count
+        if self.is_terminated:
+            reward -= 1.0
 
         return reward
 
