@@ -18,7 +18,7 @@ Simulator::Simulator(uint8_t id, uint32_t rng_seed, const RowEntry* MOVE_TABLE) 
     std::cout << "Sim ready!\n";
 }
 Move Simulator::makeMove(Move move) {
-    std::cout << "Received move: " << std::bitset<5>(move) << '\n';
+    // std::cout << "Received move: " << std::bitset<5>(move) << '\n';
     prev_board = board;
     prev_score = score;
     switch (move) {
@@ -29,7 +29,7 @@ Move Simulator::makeMove(Move move) {
         case NOMOVE: { init(); return getValidMoves(); } // Sent by model as a signal to restart
         default: { game_ended = true; return NOMOVE; }
     }
-    std::cout << "Reward: " << getReward() << std::endl;
+    // std::cout << "Reward: " << getReward() << std::endl;
     generateRandomTile();
     current_moves = getValidMoves();
     return current_moves;
@@ -86,7 +86,7 @@ void Simulator::generateRandomTile() {
 }
 
 void Simulator::init() {
-    std::cout << "(RE)STARTING GAME: " << std::to_string(id) << '\n';
+    // std::cout << "(RE)STARTING GAME: " << std::to_string(id) << '\n';
     game_ended = false;
     score = 0;
     prev_score = 0;
