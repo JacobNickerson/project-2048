@@ -1,10 +1,11 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import optimizers # type: ignore
+from tensorflow.keras import optimizers  # type: ignore
 from src.model import DQN, DuelingDQN
 from src.buffer import ReplayBuffer
 from src.utils import unpack_64bit_state
 from src.sim import Move
+
 
 class DQNAgent:
     def __init__(
@@ -14,7 +15,7 @@ class DQNAgent:
         lr: float = 1e-3,
         gamma: float = 0.99,
         buffer_capacity: int = 100000,
-        batch_size: int = 64
+        batch_size: int = 64,
     ) -> None:
         self.action_dim: int = action_dim
         self.gamma: float = gamma
@@ -35,16 +36,22 @@ class DQNAgent:
         with tf.device("/GPU:0"):
             self.q_network.load_weights(q_net_path)
             self.target_network.load_weights(target_net_path)
-    
-    def select_action(self, state: np.ndarray, epsilon: float, valid_actions: int) -> int:
+
+    def select_action(
+        self, state: np.ndarray, epsilon: float, valid_actions: int
+    ) -> int:
         """
         Epsilon-greedy action selection using valid_actions bitflags.
         """
-        if valid_actions == 0:  # no valid moves, game ended, shouldn't ever happen because ended games will restart before calling this
+        if (
+            valid_actions == 0
+        ):  # no valid moves, game ended, shouldn't ever happen because ended games will restart before calling this
             raise ValueError("HOW")
 
         # Convert bitflags to indices
-        valid_actions_arr = np.flatnonzero([(valid_actions >> i) & 1 for i in range(self.action_dim)])
+        valid_actions_arr = np.flatnonzero(
+            [(valid_actions >> i) & 1 for i in range(self.action_dim)]
+        )
 
         # Epsilon-greedy
         if np.random.rand() < epsilon:
@@ -62,7 +69,9 @@ class DQNAgent:
         # Return as bitflag
         return 1 << int(np.argmax(mask))
 
-    def select_actions_batch(self, states: np.ndarray, epsilon: float, valid_actions_list: np.ndarray) -> np.ndarray:
+    def select_actions_batch(
+        self, states: np.ndarray, epsilon: float, valid_actions_list: np.ndarray
+    ) -> np.ndarray:
         """
         Batch epsilon-greedy action selection.
         states: shape (num_envs, state_dim)
@@ -73,9 +82,13 @@ class DQNAgent:
         actions = np.zeros(num_envs, dtype=np.uint8)
 
         # forward pass for all states at once
-        state_tensor = tf.convert_to_tensor(np.stack(states).astype(np.float32), dtype=tf.float32)
+        state_tensor = tf.convert_to_tensor(
+            np.stack(states).astype(np.float32), dtype=tf.float32
+        )
         with tf.device("/GPU:0"):
-            q_values_batch = self.q_network(state_tensor).numpy()  # shape: (num_envs, action_dim)
+            q_values_batch = self.q_network(
+                state_tensor
+            ).numpy()  # shape: (num_envs, action_dim)
 
         for i in range(num_envs):
             valid_actions = valid_actions_list[i]
@@ -85,7 +98,9 @@ class DQNAgent:
                 continue
 
             # convert bitflags to indices
-            valid_indices = np.flatnonzero([(valid_actions >> j) & 1 for j in range(self.action_dim)])
+            valid_indices = np.flatnonzero(
+                [(valid_actions >> j) & 1 for j in range(self.action_dim)]
+            )
 
             if np.random.rand() < epsilon:
                 actions[i] = 1 << np.random.choice(valid_indices)
@@ -98,13 +113,16 @@ class DQNAgent:
 
         return actions
 
-
     def update(self) -> bool:
         if self.replay_buffer.size < self.batch_size:
             return False
 
-        states, actions, rewards, next_states, dones = self.replay_buffer.sample(self.batch_size)
-        actions_idx = tf.cast(tf.math.log(tf.cast(actions, tf.float32)) / tf.math.log(2.0), tf.int32)
+        states, actions, rewards, next_states, dones = self.replay_buffer.sample(
+            self.batch_size
+        )
+        actions_idx = tf.cast(
+            tf.math.log(tf.cast(actions, tf.float32)) / tf.math.log(2.0), tf.int32
+        )
         self.__update_step(
             tf.convert_to_tensor(states, tf.float32),
             tf.convert_to_tensor(next_states, tf.float32),
@@ -116,11 +134,9 @@ class DQNAgent:
 
     @tf.function
     def __update_step(self, states, next_states, actions, rewards, dones) -> None:
-        next_action = tf.cast(tf.argmax(self.q_network(next_states), axis=1),tf.int32)
+        next_action = tf.cast(tf.argmax(self.q_network(next_states), axis=1), tf.int32)
         next_q_target = tf.gather(
-            self.target_network(next_states),
-            next_action,
-            batch_dims=1
+            self.target_network(next_states), next_action, batch_dims=1
         )
 
         target = rewards + self.gamma * (1.0 - dones) * next_q_target
@@ -135,17 +151,21 @@ class DQNAgent:
 
         return True
 
-
     def sync_target_network(self) -> None:
         self.target_network.set_weights(self.q_network.get_weights())
+
 
 class RandomAgent:
     def __init__(self, state_dim: int, action_dim: int):
         self.action_dim = action_dim
         self.state_dim = state_dim
 
-    def select_action(self, state: np.ndarray, epsilon: float, valid_actions: int) -> int:
-        if (valid_actions & 0b00010000) > 0: # no valid moves, game is ended 
+    def select_action(
+        self, state: np.ndarray, epsilon: float, valid_actions: int
+    ) -> int:
+        if (valid_actions & 0b00010000) > 0:  # no valid moves, game is ended
             return 0b00010000
-        valid_actions_arr = [i for i in range(self.action_dim) if (valid_actions >> i) & 1]
+        valid_actions_arr = [
+            i for i in range(self.action_dim) if (valid_actions >> i) & 1
+        ]
         return 1 << np.random.choice(valid_actions_arr)

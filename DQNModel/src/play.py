@@ -2,34 +2,37 @@ from src.agent import DQNAgent
 from src.env_manager import CPPEnvManager, PyEnvManager
 from src.sim import Simulator, LookupTable, Move
 
+
 def play_dqn(agent: DQNAgent, env_manager: CPPEnvManager):
     env_manager.reset_all()  # reset all environments at episode start
     while True:
         state = env_manager.pop_results()
         if state.size == 0:
             continue
-        action = [agent.select_action(state["board"],0,state["moves"])]
+        action = [agent.select_action(state["board"], 0, state["moves"])]
         env_manager.write_actions(action)
         if action == 0b00010000:
             break
 
     print(state)
 
+
 def play_py_dqn(agent: DQNAgent, env: PyEnvManager):
     action_count = 0
     while True:
-        action = agent.select_action(env.get_board(packed=False),0,env.get_valid_moves())
+        action = agent.select_action(
+            env.get_board(packed=False), 0, env.get_valid_moves()
+        )
         env.make_move(action)
         action_count += 1
         if env.is_terminated:
             break
 
+
 def play_user_dqn():
     look_up_table = LookupTable()
     sim = Simulator(
-        0,
-        look_up_table.move_look_up_table,
-        look_up_table.score_look_up_table
+        0, look_up_table.move_look_up_table, look_up_table.score_look_up_table
     )
     while True:
         sim.print_board()
@@ -38,16 +41,18 @@ def play_user_dqn():
             break
         valid_moves = sim.get_valid_moves()
         # lmao this is so bad
-        print(f"Valid moves: {'W' if valid_moves & Move.UP.value else 'X'}{'A' if valid_moves & Move.LEFT.value else 'X'}{'S' if valid_moves & Move.DOWN.value else 'X'}{'D' if valid_moves & Move.RIGHT.value else 'X'}")
+        print(
+            f"Valid moves: {'W' if valid_moves & Move.UP.value else 'X'}{'A' if valid_moves & Move.LEFT.value else 'X'}{'S' if valid_moves & Move.DOWN.value else 'X'}{'D' if valid_moves & Move.RIGHT.value else 'X'}"
+        )
         move = input("Enter move  (WASD): ").lower()
-        match(move):
-            case 'w':
+        match (move):
+            case "w":
                 move = Move.UP
-            case 'a':
+            case "a":
                 move = Move.LEFT
-            case 's':
+            case "s":
                 move = Move.DOWN
-            case 'd':
+            case "d":
                 move = Move.RIGHT
             case _:
                 print("Invalid move")
