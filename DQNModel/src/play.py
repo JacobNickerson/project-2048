@@ -1,5 +1,6 @@
 from src.agent import DQNAgent
 from src.env_manager import CPPEnvManager, PyEnvManager
+from src.sim import Simulator, LookupTable, Move
 
 def play_dqn(agent: DQNAgent, env_manager: CPPEnvManager):
     env_manager.reset_all()  # reset all environments at episode start
@@ -22,3 +23,39 @@ def play_py_dqn(agent: DQNAgent, env: PyEnvManager):
         action_count += 1
         if env.is_terminated:
             break
+
+def play_user_dqn():
+    look_up_table = LookupTable()
+    sim = Simulator(
+        0,
+        look_up_table.move_look_up_table,
+        look_up_table.score_look_up_table
+    )
+    while True:
+        sim.print_board()
+        print(f"Score: {sim.get_score()}")
+        if sim.is_terminated:
+            break
+        valid_moves = sim.get_valid_moves()
+        # lmao this is so bad
+        print(f"Valid moves: {'W' if valid_moves & Move.UP.value else 'X'}{'A' if valid_moves & Move.LEFT.value else 'X'}{'S' if valid_moves & Move.DOWN.value else 'X'}{'D' if valid_moves & Move.RIGHT.value else 'X'}")
+        move = input("Enter move  (WASD): ").lower()
+        match(move):
+            case 'w':
+                move = Move.UP
+            case 'a':
+                move = Move.LEFT
+            case 's':
+                move = Move.DOWN
+            case 'd':
+                move = Move.RIGHT
+            case _:
+                print("Invalid move")
+                continue
+        if (move.value & valid_moves) == 0:
+            print("Invalid move")
+            continue
+        sim.make_move(move.value)
+    print("Game over!")
+    print(f"Score: {sim.get_score()}")
+    sim.print_board()

@@ -80,13 +80,15 @@ def main():
                 print(f"MEDIAN TILE: {median_max_tile}")
                 print(f"MAX TILE   : {highest_max_tile}")
                 with open("output.txt", "a", encoding="utf-8") as f:
-                    f.write("score,max_tile,board_state")
+                    f.write("score,max_tile,board_state\n")
                     for i in range(args.average_runs):
                         f.write(f"{scores[i]},{max_tiles[i]},{end_states[i]}\n")
         case "cpp":
             # TODO: Implement averaging, API is different between the two ENVs so its not trivial to just replace the env
             env_man = CPPEnvManager(1)
             play_dqn(agent,env_man)
+        case "user_input":
+            play_user_dqn()
         case _:
             print(f"Environment type {args.env_type} not recognized, valid options: \"py\" and \"cpp\"")
     

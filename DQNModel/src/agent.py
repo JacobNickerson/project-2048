@@ -35,32 +35,6 @@ class DQNAgent:
         with tf.device("/GPU:0"):
             self.q_network.load_weights(q_net_path)
             self.target_network.load_weights(target_net_path)
-
-    # def select_action(self, state: np.ndarray, epsilon: float, valid_actions: int) -> int:
-    #     """
-    #     Select an action using epsilon-greedy, constrained to valid_actions.
-    #     """
-    #     if (valid_actions & 0b00010000) > 0: # no valid moves, game is ended 
-    #         return 0b00010000
-
-    #     valid_actions_arr = np.flatnonzero([(valid_actions >> i) & 1 for i in range(self.action_dim)])
-
-    #     if np.random.rand() < epsilon:
-    #         # pick randomly among valid actions
-    #         return 1 << np.random.choice(valid_actions_arr)
-
-    #     # Forward pass through the network
-    #     state_tensor = tf.convert_to_tensor([state], dtype=tf.float32)
-    #     with tf.device("/GPU:0"):
-    #         q_tensor = self.q_network(state_tensor)[0]  # shape: (action_dim,)
-    #     q_values = q_tensor.numpy()
-
-    #     # Mask invalid actions
-    #     mask = np.full_like(q_values, -np.inf, dtype=np.float32)
-    #     for action in valid_actions_arr:
-    #         mask[action] = q_values[action]
-
-    #     return 1 << int(np.argmax(mask))
     
     def select_action(self, state: np.ndarray, epsilon: float, valid_actions: int) -> int:
         """
