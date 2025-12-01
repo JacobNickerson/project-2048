@@ -27,20 +27,24 @@ class DuelingDQN(tf.keras.Model):
         super().__init__()
         self.hidden = Sequential([
             layers.Dense(512, activation='elu'),
+            layers.LayerNormalization(),
             layers.Dense(512, activation='elu'),
         ])
 
-        self.value_stream = layers.Dense(256, activation='elu')
-        self.value_out = layers.Dense(1)
-
-        self.adv_stream = layers.Dense(256, activation='elu')
-        self.adv_out = layers.Dense(action_dim)
+        self.value_stream = Sequential([
+            layers.Dense(256, activation='elu'),
+            layers.Dense(128, activation='elu'),
+            layers.Dense(1)
+        ])
+        self.adv_stream = Sequential([
+            layers.Dense(256, activation='elu'),
+            layers.Dense(128, activation='elu'),
+            layers.Dense(action_dim)
+        ])
 
     def call(self, x):
-        x=self.hidden(x)
-
-        v = self.value_out(self.value_stream(x))
-        a = self.adv_out(self.adv_stream(x))
-
+        x = self.hidden(x)
+        v = self.value_stream(x)
+        a = self.adv_stream(x)
         a_mean = tf.reduce_mean(a, axis=1, keepdims=True)
         return v + (a - a_mean)

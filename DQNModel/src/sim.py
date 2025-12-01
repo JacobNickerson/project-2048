@@ -6,11 +6,11 @@ from numpy.typing import NDArray
 from src.buffer import Experience
 
 class Move(Enum):
+    NOMOVE= 0b00000000
     LEFT  = 0b00000001
     RIGHT = 0b00000010
     UP    = 0b00000100
     DOWN  = 0b00001000
-    NOMOVE= 0b00010000
 
 class Simulator:
     def __init__(self, id: int, move_look_up_table: NDArray[np.uint16], score_look_up_table: NDArray[np.object_]):
@@ -41,7 +41,7 @@ class Simulator:
             case Move.DOWN.value:
                 self.__move_down()
             case Move.NOMOVE.value:
-                self.is_terminated = True
+                return
             case _:
                 raise ValueError("bruh")
         self.__populate_random_cell(self.board)
@@ -59,6 +59,7 @@ class Simulator:
 
         self.__populate_random_cell(self.board)
         self.__populate_random_cell(self.board)
+        self.valid_moves = self.__get_valid_moves(self.board)
 
     def get_experience(self) -> Experience:
         """
@@ -66,8 +67,8 @@ class Simulator:
         """
         return (
             self.idx,
-            self.__unpack_board(self.board),
-            self.__unpack_board(self.prev_board),
+            self.__unpack_board(self.board).astype(np.float32),
+            self.__unpack_board(self.prev_board).astype(np.float32),
             self.valid_moves,
             self.__get_reward(self.board, self.prev_board),
             self.is_terminated
@@ -194,7 +195,7 @@ class Simulator:
         board: np.ndarray of shape (4,), dtype=np.uint16
         Returns the unpacked form of a bit-packed board as a np.ndarray of shape (16,), dtype=np.uint8
         """
-        shifts = np.array([12, 8, 4, 0], dtype=np.uint16)  # bits per tile
+        shifts = np.array([12, 8, 4, 0], dtype=np.uint16)     # bits per tile
         unpacked = (board[:, None] >> shifts[None, :]) & 0xF  # shape (4,4)
         return unpacked.ravel().astype(np.uint32)             # flatten to shape (16,)
     
@@ -242,7 +243,7 @@ class Simulator:
             (up    << 2) |
             (down  << 3)
         )
-        return moves | ((moves == 0) << 4)
+        return moves
 
 
     def __row_can_move_left(self, row: NDArray[np.uint16]) -> NDArray[np.bool_]:

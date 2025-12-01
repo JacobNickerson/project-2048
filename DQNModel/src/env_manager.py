@@ -1,6 +1,7 @@
 import numpy as np
 from src.sim import Simulator, LookupTable 
 from src.PySharedMemoryInterface import SharedMemoryInterface # type: ignore
+from src.buffer import Experience
 from numpy.typing import NDArray
 
 message_dtype = np.dtype([
@@ -94,13 +95,20 @@ class PyEnvManager:
         """
         Returns an array of experiences from the environments
         """
-        arr = ([env.get_experience() for env in self.envs])
-        arr = np.array(arr,dtype=pymessage_dtype)
-        return arr
+        return np.array(
+            [env.get_experience() for env in self.envs],
+            dtype=pymessage_dtype
+        )
 
-    def reset_all(self) -> None:
+    def reset_all(self) -> np.ndarray:
         """
         Reset all environments
         """
         for env in self.envs:
             env.reset()
+        return self.poll_results()
+
+    def reset(self, idx: int) -> Experience:
+        self.envs[idx].reset()
+        return self.envs[idx].get_experience()
+        # return np.array([self.envs[idx].get_experience()], dtype=pymessage_dtype)

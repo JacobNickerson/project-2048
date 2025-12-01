@@ -47,7 +47,7 @@ def train_dqn(agent: DQNAgent, env_manager: CPPEnvManager, epsilon: float, save_
 
         if episode % save_every == 0:
             q_net_filename = f"saved_models/{file_name}_policy_{episode}.weights.h5"
-            target_net_filename = f"saved_models/{file_name}_{episode}.weights.h5"
+            target_net_filename = f"saved_models/{file_name}_target_{episode}.weights.h5"
             agent.q_network.save_weights(q_net_filename)
             agent.target_network.save_weights(target_net_filename)
     end = time()
@@ -55,48 +55,42 @@ def train_dqn(agent: DQNAgent, env_manager: CPPEnvManager, epsilon: float, save_
 
 def train_python_dqn(agent: DQNAgent, env_manager: PyEnvManager, epsilon: float, save_every=1000, episode_count=float('inf'), file_name="model"):
     episode = 0
-    env_manager.reset_all()
-    start = time()
-    results = env_manager.poll_results()
+    total_steps = 0
+    gradient_updates = 0
+    save_target = save_every
+    num_envs = env_manager.num_envs
+    results = env_manager.reset_all()
     states, valid_moves = results["state"], results["moves"]
-    actions = np.zeros(env_manager.num_envs, dtype=np.uint8)
-    step_count = 0
     while episode < episode_count:
-        step_count += env_manager.num_envs
-        for env in env_manager.envs:
-            actions[env.idx] = agent.select_action(states[env.idx],epsilon,valid_moves[env.idx])
+        total_steps  += num_envs
+        actions = agent.select_actions_batch(states,epsilon,valid_moves)
 
         env_manager.write_actions(actions)
         results = env_manager.poll_results()
 
-        for action, result in zip(actions,results):
+        for result in results:
             env_idx, prev_state, reward, state, is_terminated, moves = result["id"], result["prev_state"], result["reward"], result["state"], result["is_terminated"], result["moves"]
+            agent.replay_buffer.add(prev_state, actions[env_idx], reward, state, is_terminated)
             if not is_terminated:
-                agent.replay_buffer.add(prev_state, action, reward, state, is_terminated)
                 states[env_idx] = state
                 valid_moves[env_idx] = moves
             else:
+                starting_state = env_manager.reset(env_idx)
+                states[env_idx] = starting_state[1]
+                valid_moves[env_idx] = starting_state[3]
                 episode += 1
                 print(f"episodes: {episode}")
-                env = env_manager.envs[env_idx]
-                env.reset()
-                states[env.idx] = env.get_board(False)
-                valid_moves[env.idx] = env.get_valid_moves()
 
-        agent.update()
+        if agent.update():
+            gradient_updates += 1
 
-        if step_count > 10000:
-            step_count = 0
+        if gradient_updates >= 10000:
             agent.sync_target_network()
-            
+            gradient_updates = 0
 
-        if episode % save_every == 0:
-            q_net_filename = f"saved_models/{file_name}_policy_{episode}.weights.h5"
-            target_net_filename = f"saved_models/{file_name}_target_{episode}.weights.h5"
+        if total_steps >= save_target:
+            q_net_filename = f"saved_models/{file_name}_policy_{total_steps}.weights.h5"
+            target_net_filename = f"saved_models/{file_name}_target_{total_steps}.weights.h5"
             agent.q_network.save_weights(q_net_filename)
             agent.target_network.save_weights(target_net_filename)
-    end = time()
-    print(f"{end-start}s to run {episode_count} episodes")
-    for env in env_manager.envs:
-        print(f"Env {env.id} score: {env.score}")
-        env.print_board()
+            save_target += save_every
