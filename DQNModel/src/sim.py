@@ -35,7 +35,7 @@ class LookupTable:
             dtype=np.uint8,
         )
         diff = np.diff(r)
-        monotonicity = 1.0 if (np.all(diff > 0) or np.all(diff < 0)) else 0.0
+        monotonicity = 1.0 if (np.all(diff >= 0) or np.all(diff <= 0)) else 0.0
         nz = r[r != 0]
         compact = np.zeros(4, np.uint8)
         compact[: len(nz)] = nz
@@ -115,6 +115,7 @@ class Simulator:
         self.board = np.zeros(4, dtype=np.uint16)
         self.prev_board = np.zeros(4, dtype=np.uint16)
         self.score = 0
+        self.prev_score = 0
         self.is_terminated = False
 
         self.__populate_random_cell(self.board)
@@ -297,24 +298,17 @@ class Simulator:
 
         monotonicity = self.__compute_monotonicity(current_board)
 
-        unpacked_prev = self.__unpack_board(prev_board)
         unpacked_curr = self.__unpack_board(current_board)
-        empty_delta = np.sum(unpacked_curr == 0) - np.sum(unpacked_prev == 0)
-
+        empty_delta = np.sum(unpacked_curr == 0) - np.sum(self.__unpack_board(prev_board))
 
         max_tile = np.max(unpacked_curr)
         corner_indices = [0, 3, 12, 15]  # flattened corners
         # max of 4
         corner_bonus = 1.0 if any(unpacked_curr[i]==max_tile for i in corner_indices) else 0.0
 
-        c_corner = 0.05  # Scaling factor for bonus for having max tile in corner
-        c_mono = 0.1   # Scaling factor for monotonicity
-        c_empty = 0.05  # Scaling factor for empty tiles
-        self.print_board()
-        print(f"Scaled score: {scaled_score}")
-        print(f"Empty heuristic: {c_empty * empty_delta}")
-        print(f"Monotonic heuristic: {c_mono * monotonicity}")
-        print(f"Corner heuristic: {c_corner * corner_bonus}")
+        c_corner = 0.25  # Scaling factor for bonus for having max tile in corner
+        c_mono = 0.15   # Scaling factor for monotonicity
+        c_empty = 0.10  # Scaling factor for empty tiles
         reward = scaled_score + c_empty*empty_delta + c_mono*monotonicity + c_corner*corner_bonus
 
         return reward
