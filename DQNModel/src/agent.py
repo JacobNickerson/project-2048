@@ -169,3 +169,38 @@ class RandomAgent:
             i for i in range(self.action_dim) if (valid_actions >> i) & 1
         ]
         return 1 << np.random.choice(valid_actions_arr)
+
+class UserAgent:
+    def __init__(self):
+        self.valid_moves = 0
+
+    def select_action(
+            self, state: np.ndarray, epsilon: float, valid_actions: int  
+    ) -> int:
+        if (valid_actions & 0b00010000) > 0:  # no valid moves, game is ended
+            return 0b00010000
+        # lmao this is so bad
+        print(f"valid: {format(valid_actions,"04b")}")
+        print(
+            f"Valid moves: {'W' if valid_actions & Move.UP.value else 'X'}{'A' if valid_actions & Move.LEFT.value else 'X'}{'S' if valid_actions & Move.DOWN.value else 'X'}{'D' if valid_actions & Move.RIGHT.value else 'X'}"
+        )
+        while True:
+            move = input("Enter move  (WASD): ").lower()
+            match (move):
+                case "w":
+                    move = Move.UP
+                    break
+                case "a":
+                    move = Move.LEFT
+                    break
+                case "s":
+                    move = Move.DOWN
+                    break
+                case "d":
+                    move = Move.RIGHT
+                    break
+                case _:
+                    print("Invalid move")
+            if (move.value & self.valid_moves) == 0:
+                print("Invalid move")
+        return move.value

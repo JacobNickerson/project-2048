@@ -1,8 +1,13 @@
 import numpy as np
-from src.sim import Simulator, LookupTable
+from src.sim import Simulator, LookupTable, Move
 from src.PySharedMemoryInterface import SharedMemoryInterface  # type: ignore
 from src.buffer import Experience
 from numpy.typing import NDArray
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import time
 
 message_dtype = np.dtype(
     [
@@ -115,3 +120,97 @@ class PyEnvManager:
         self.envs[idx].reset()
         return self.envs[idx].get_experience()
         # return np.array([self.envs[idx].get_experience()], dtype=pymessage_dtype)
+
+class WebEnvManager:
+    """
+    Only intended for use with run model, does not include training data like reward
+    """
+    def __init__(self):
+        self.driver = webdriver.Chrome()
+        self.driver.get("https://2048game.com")
+        self.driver.implicitly_wait(5)
+        self.game_element = self.driver.find_element("tag name", "body")
+        self.board = np.zeros(16)
+        self.valid_moves = 0
+        self.is_terminated = False
+        self.__update_board()
+
+
+    def get_board(self):
+        return self.board
+
+    def get_valid_moves(self):
+        return self.valid_moves
+
+    def write_action(self, move):
+        match(move):
+            case Move.UP.value:
+                move = Keys.ARROW_UP
+            case Move.DOWN.value:
+                move = Keys.ARROW_DOWN
+            case Move.LEFT.value:
+                move = Keys.ARROW_LEFT
+            case Move.RIGHT.value:
+                move = Keys.ARROW_RIGHT
+            case _:
+                raise ValueError("Invalid move")
+        print("sending keys")
+        self.game_element.send_keys(move)
+        time.sleep(0.1)  # small delay so browser can update
+        self.__update_board()
+
+    def __update_board(self):
+        # get board
+        js = """
+        let s = localStorage.getItem("gameState");
+        return s ? JSON.parse(s) : null;
+        """
+        state = None
+        while state is None:
+            state = self.driver.execute_script(js)
+        state = state["grid"]["cells"]
+        self.board = self.__convert_state(state)
+        
+        # update valid moves
+        self.valid_moves = self.__get_valid_moves(self.board)
+        self.is_terminated = self.valid_moves == 0
+
+    def __get_valid_moves(self, board: np.ndarray) -> int:
+        temp_board = np.array(board).reshape(4,4)
+        valid_moves = 0
+
+        def can_move_left(b):
+            for row in b:
+                for i in range(1,4):
+                    if row[i] != 0 and (row[i-1] == 0 or row[i-1] == row[i]):
+                        return True
+            return False
+
+        def can_move_right(b):
+            return can_move_left(np.fliplr(b))
+
+        def can_move_up(b):
+            return can_move_left(b.T)
+
+        def can_move_down(b):
+            return can_move_right(b.T)
+
+        if can_move_left(temp_board):
+            valid_moves |= 0b00000001
+        if can_move_right(temp_board):
+            valid_moves |= 0b00000010
+        if can_move_up(temp_board):
+            valid_moves |= 0b00000100
+        if can_move_down(temp_board):
+            valid_moves |= 0b00001000
+
+        return valid_moves
+        
+    def __convert_state(self, state):
+        board = np.zeros(16, dtype=np.uint32)
+        for row in state:
+            for cell in row:
+                if cell:
+                    pos, val = cell['position'], cell['value']
+                    board[pos['x']+4*pos['y']] = val
+        return board

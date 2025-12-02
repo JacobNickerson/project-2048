@@ -3,9 +3,9 @@
 import tensorflow as tf
 import numpy as np
 from argparse import ArgumentParser
-from src.agent import DQNAgent, RandomAgent
-from src.env_manager import CPPEnvManager, PyEnvManager
-from src.play import play_dqn, play_py_dqn, play_user_dqn
+from src.agent import DQNAgent, RandomAgent, UserAgent
+from src.env_manager import CPPEnvManager, PyEnvManager, WebEnvManager
+from src.play import play_dqn, play_py_dqn, play_user_dqn, play_web_dqn
 
 
 def main():
@@ -58,8 +58,7 @@ def main():
             agent = RandomAgent(STATE_DIM, ACTION_DIM)
         case "user":
             print("Playing with user input")
-            play_user_dqn()
-            return
+            agent = UserAgent()
         case "network":
             if not args.network and not (args.q_network and args.target_network):
                 print(
@@ -125,6 +124,9 @@ def main():
             # TODO: Implement averaging, API is different between the two ENVs so its not trivial to just replace the env
             env_man = CPPEnvManager(1)
             play_dqn(agent, env_man)
+        case "web":
+            env_man = WebEnvManager()
+            play_web_dqn(agent, env_man)
         case _:
             print(
                 f'Environment type {args.env_type} not recognized, valid options: "py" and "cpp"'

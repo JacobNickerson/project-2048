@@ -101,7 +101,7 @@ class Simulator:
         cells = np.array([0 if cell == 0 else 1 << cell for cell in cells])
         print(cells.reshape((4, 4)))
 
-    def get_board(self, packed=True):
+    def get_board(self, packed=False):
         """
         Returns the current board as either an array of packed bits or an unpacked array of integers
         """
