@@ -20,6 +20,8 @@ class DQNAgent:
         self.action_dim: int = action_dim
         self.gamma: float = gamma
         self.batch_size: int = batch_size
+        self.loss_fn = tf.keras.losses.Huber(delta=1.0)
+        self.decay_steps = 2_000_000
 
         with tf.device("/GPU:0"):
             self.q_network: DuelingDQN = DuelingDQN(state_dim, action_dim)
@@ -29,7 +31,10 @@ class DQNAgent:
             self.q_network(dummy)
             self.target_network(dummy)
 
-        self.optimizer: optimizers.Optimizer = optimizers.Adam(learning_rate=lr)
+        self.optimizer: optimizers.Optimizer = optimizers.Adam(
+            learning_rate=lr,
+            clipnorm=5.0
+        )
         self.replay_buffer: ReplayBuffer = ReplayBuffer(buffer_capacity, (state_dim,))
 
     def load_weights(self, q_net_path: str, target_net_path: str) -> None:
@@ -144,12 +149,11 @@ class DQNAgent:
         with tf.GradientTape() as tape:
             q = self.q_network(states)
             q_selected = tf.gather(q, actions, batch_dims=1)
-            loss = tf.keras.losses.huber(target, q_selected)
+            loss = self.loss_fn(target, q_selected)
 
         grads = tape.gradient(loss, self.q_network.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.q_network.trainable_variables))
 
-        return True
 
     def sync_target_network(self) -> None:
         self.target_network.set_weights(self.q_network.get_weights())

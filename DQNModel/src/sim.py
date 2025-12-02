@@ -131,7 +131,7 @@ class Simulator:
             self.__unpack_board(self.board).astype(np.float32),
             self.__unpack_board(self.prev_board).astype(np.float32),
             self.valid_moves,
-            self.__get_reward(self.board, self.prev_board),
+            self.__get_reward(self.board),
             self.is_terminated,
         )
 
@@ -285,32 +285,28 @@ class Simulator:
         arr64 = board.astype(np.uint64)
         return (arr64[0] << 48) | (arr64[1] << 32) | (arr64[2] << 16) | arr64[3]
 
-    def __get_reward(self, current_board: NDArray[np.uint16], prev_board: NDArray[np.uint16]):
+    def __get_reward(self, current_board: NDArray[np.uint16]):
         """
         board: np.ndarray of shape (4,), dtype=np.uint16
-        prev_board: np.ndarray of shape (4,), dtype=np.uint16
         Returns a reward value based on the current and previous board state
         Currently values: score delta, empty tiles, largest tile, largest tile is in a corner
         """
-        score_delta = self.score - self.prev_score
-        # 2s into 4 yields ~2.3, 512s into 1024 yields ~11
-        scaled_score = np.log2(score_delta + 1)  # log scaling
+        cells = self.__unpack_board(current_board)
+        empty_count = np.count_nonzero(cells == 0)
+        max_val = np.max(cells)
 
-        monotonicity = self.__compute_monotonicity(current_board)
+        m_scale = 0.2  # scalar for max tile reward
+        c_scale = 0.1  # scalar for corner heuristic
+        e_scale = 0.1  # scalar for empty reward
+        t_scale = 5.0  # scalar for terminal states
 
-        unpacked_curr = self.__unpack_board(current_board)
-        empty_delta = np.sum(unpacked_curr == 0) - np.sum(self.__unpack_board(prev_board))
+        reward = np.log2(1+(self.score - self.prev_score))
+        reward += m_scale * np.log2(max_val)
+        reward += c_scale if np.any(max_val == cells[i] for i in [0,3,12,15]) else 0.0
+        reward += e_scale * empty_count
 
-        max_tile = np.max(unpacked_curr)
-        corner_indices = [0, 3, 12, 15]  # flattened corners
-        # max of 4
-        corner_bonus = 1.0 if any(unpacked_curr[i]==max_tile for i in corner_indices) else 0.0
-
-        c_corner = 0.25  # Scaling factor for bonus for having max tile in corner
-        c_mono = 0.15   # Scaling factor for monotonicity
-        c_empty = 0.10  # Scaling factor for empty tiles
-        reward = scaled_score + c_empty*empty_delta + c_mono*monotonicity + c_corner*corner_bonus
-
+        if self.is_terminated:
+            reward -= t_scale
         return reward
 
 

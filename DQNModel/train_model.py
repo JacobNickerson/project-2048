@@ -17,7 +17,7 @@ def main():
 
     parser = ArgumentParser()
     parser.add_argument("--num-env", type=int, required=False, default=1)
-    parser.add_argument("--epsilon", type=float, required=False, default=0.1)
+    parser.add_argument("--epsilon", type=float, required=False, default=1.0)
     parser.add_argument("--env-type", type=str, required=False, default="py")
     parser.add_argument("--step-save-interval", type=int, required=False, default=10000)
     parser.add_argument("--ep-count", type=int, required=False, default=float("inf"))
@@ -28,7 +28,12 @@ def main():
     ACTION_DIM = 4
 
     agent_2048 = DQNAgent(
-        STATE_DIM, ACTION_DIM, buffer_capacity=5_000_000, batch_size=128, lr=9e-5
+        STATE_DIM,
+        ACTION_DIM,
+        buffer_capacity=10_000_000,
+        batch_size=512,
+        lr=3e-5,
+        gamma=0.99
     )
     match (args.env_type):
         case "py":

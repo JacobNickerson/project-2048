@@ -9,8 +9,9 @@ def train_dqn(
     agent: DQNAgent,
     env_manager: CPPEnvManager,
     epsilon: float,
-    save_every=1000,
+    update_every=2,
     episode_count=float("inf"),
+    save_every=1000,
     file_name="model",
 ):
     num_envs = env_manager.num_envs
@@ -57,9 +58,10 @@ def train_dqn(
             states[env_idx] = result
             needs_action[env_idx] = True  # mark this env as needing an action
 
-        agent.update()
+        if step_count % update_every*num_envs == 0:
+            agent.update()
 
-        if step_count > 10000:
+        if step_count >= num_envs * 1000:
             step_count = 0
             agent.sync_target_network()
 
@@ -78,10 +80,17 @@ def train_python_dqn(
     agent: DQNAgent,
     env_manager: PyEnvManager,
     epsilon: float,
-    save_every=1000,
+    update_every=2,
     episode_count=float("inf"),
+    save_every=1000,
     file_name="model",
 ):
+    epsilon_end = 0.05
+    epsilon_step_decay = 50_000_000
+    def get_epsilon(step):
+        eps = max(epsilon_end,epsilon-step/epsilon_step_decay)
+        return eps
+
     episode = 0
     total_steps = 0
     gradient_updates = 0
@@ -90,8 +99,7 @@ def train_python_dqn(
     results = env_manager.reset_all()
     states, valid_moves = results["state"], results["moves"]
     while episode < episode_count:
-        total_steps += num_envs
-        actions = agent.select_actions_batch(states, epsilon, valid_moves)
+        actions = agent.select_actions_batch(states, get_epsilon(total_steps), valid_moves)
 
         env_manager.write_actions(actions)
         results = env_manager.poll_results()
@@ -118,10 +126,10 @@ def train_python_dqn(
                 episode += 1
                 print(f"episodes: {episode}")
 
-        if agent.update():
+        if total_steps % (num_envs*update_every) == 0 and agent.update():
             gradient_updates += 1
 
-        if gradient_updates >= 10000:
+        if gradient_updates >= 50000:
             agent.sync_target_network()
             gradient_updates = 0
 
@@ -133,3 +141,4 @@ def train_python_dqn(
             agent.q_network.save_weights(q_net_filename)
             agent.target_network.save_weights(target_net_filename)
             save_target += save_every
+        total_steps += num_envs
