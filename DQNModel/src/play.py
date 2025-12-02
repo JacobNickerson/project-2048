@@ -32,7 +32,7 @@ def play_py_dqn(agent: DQNAgent, env: PyEnvManager):
 def play_user_dqn():
     look_up_table = LookupTable()
     sim = Simulator(
-        0, look_up_table.move_look_up_table, look_up_table.score_look_up_table
+        0, look_up_table.moves, look_up_table.scores
     )
     while True:
         sim.print_board()

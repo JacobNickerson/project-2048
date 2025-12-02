@@ -89,8 +89,7 @@ class PyEnvManager:
         for i in range(self.num_envs):
             self.envs[i] = Simulator(
                 i,
-                self.look_up_table.move_look_up_table,
-                self.look_up_table.score_look_up_table,
+                self.look_up_table
             )
 
     def write_actions(self, actions):
