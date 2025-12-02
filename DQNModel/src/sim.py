@@ -29,6 +29,7 @@ class Simulator:
         self.score = 0
         self.is_terminated = False
         self.valid_moves = Move.NOMOVE.value
+        self.rng = np.random.Random()
         self.reset()
 
     def make_move(self, move: Move) -> None:
@@ -206,13 +207,14 @@ class Simulator:
         if count == 0:
             return
 
-        idx = random.randrange(count)
+        idx = self.rng.randrange(count)
         flat_pos = empty_indices[idx]
 
         row = flat_pos // 4
         col = flat_pos % 4
 
-        val = 2 if random.randrange(10) < 9 else 4
+        # NOTE: Varying the rng for tile spawn, randomly, to avoid overfitting to fixed spawn rates
+        val = 2 if self.rng.random() < 0.88 + 0.04*self.rng.random() else 4
 
         shift = (3 - col) * 4
         board[row] |= np.uint16((val.bit_length() - 1) << shift)
@@ -230,26 +232,48 @@ class Simulator:
         arr64 = board.astype(np.uint64)
         return (arr64[0] << 48) | (arr64[1] << 32) | (arr64[2] << 16) | arr64[3]
 
-    def __get_reward(self, board: NDArray[np.uint16], prev_board: NDArray[np.uint16]):
+    def __get_reward(self, curr_board: NDArray[np.uint16], prev_board: NDArray[np.uint16]):
         """
         board: np.ndarray of shape (4,), dtype=np.uint16
         prev_board: np.ndarray of shape (4,), dtype=np.uint16
         Returns a reward value based on the current and previous board state
         Currently values: score delta, empty tiles, largest tile, largest tile is in a corner
         """
-        cells = self.__unpack_board(board)
-        empty_count = np.count_nonzero(cells == 0)
-        max_idx = np.argmax(cells)
-        max_val = cells[max_idx]
+        score_delta = self.score_look_up_table[prev_board].sum()
+        # 2s into 4 yields ~2.3, 512s into 1024 yields ~11
+        scaled_score = np.log2(score_delta + 1)  # log scaling
 
-        reward = float(self.score_look_up_table[prev_board].sum()) * (1.0 / 1024.0)
-        reward += 0.2 * np.log2(max_val)
-        reward += 0.2 * (max_idx in (0, 3, 12, 15))
-        reward += 0.1 * empty_count
-        if self.is_terminated:
-            reward -= 1.0
+        empty_delta = np.sum(curr_board == 0) - np.sum(prev_board == 0)
+
+        # ranges between [0,24]
+        mono_delta = self.__compute_monotonicity(curr_board) - self.__compute_monotonicity(prev_board)
+
+        max_tile = np.max(curr_board)
+        corner_indices = [0, 3, 12, 15]  # flattened corners
+        # max of 4
+        corner_bonus = 1.0 if any(curr_board[i]==max_tile for i in corner_indices) else 0.0
+
+        c_corner = 0.05  # Scaling factor for bonus for having max tile in corner
+        c_mono = 0.05   # Scaling factor for monotonicity
+        c_empty = 0.05  # Scaling factor for empty tiles
+        reward = scaled_score + c_empty*empty_delta + c_mono*mono_delta + c_corner*corner_bonus
 
         return reward
+
+
+    def __compute_monotonicity(self, board: NDArray[np.uint16]) -> float:
+        board = self.__unpack_board(board).reshape(4,4)
+
+        diff_lr = np.diff(board, axis=1)
+        diff_rl = -diff_lr
+        row_mono = np.sum(np.where(diff_lr <= 0, diff_lr, 0)) + np.sum(np.where(diff_rl <= 0, diff_rl, 0))
+
+        # Column differences
+        diff_ud = np.diff(board, axis=0)
+        diff_du = -diff_ud
+        col_mono = np.sum(np.where(diff_ud <= 0, diff_ud, 0)) + np.sum(np.where(diff_du <= 0, diff_du, 0))
+
+        return - (row_mono + col_mono)
 
     def __get_valid_moves(self, board: np.ndarray) -> int:
         """
