@@ -14,22 +14,73 @@ class Move(Enum):
     DOWN = 0b00001000
 
 
+class LookupTable:
+    """
+    Generates a look up table for 2048, pre-computing all moves left and their score increases
+    """
+
+    def __init__(self):
+        move_count = 16**4
+        self.moves = np.zeros(move_count, dtype=np.uint16)
+        self.scores = np.zeros(move_count, dtype=int)
+        self.monotonicity = np.zeros(move_count, dtype=float)
+        for i in np.arange(move_count, dtype=np.uint16):
+            self.moves[i], self.scores[i], self.monotonicity[i] = (
+                self.__shift_row_left(i)
+            )
+
+    def __shift_row_left(self, row: np.uint16) -> Tuple[np.uint16, int]:
+        r = np.array(
+            [(row >> 12) & 0xF, (row >> 8) & 0xF, (row >> 4) & 0xF, (row >> 0) & 0xF],
+            dtype=np.uint8,
+        )
+        diff = np.diff(r)
+        monotonicity = 1.0 if (np.all(diff > 0) or np.all(diff < 0)) else 0.0
+        nz = r[r != 0]
+        compact = np.zeros(4, np.uint8)
+        compact[: len(nz)] = nz
+        r = compact
+
+        score = 0
+        merged = np.zeros(4, np.bool_)
+
+        for i in range(1, 4):
+            if r[i] != 0 and r[i] == r[i - 1] and not merged[i - 1]:
+                r[i - 1] += 1
+                r[i] = 0
+                merged[i - 1] = True
+                score += 1 << int(r[i - 1])
+
+        nz = r[r != 0]
+        r2 = np.zeros(4, np.uint8)
+        r2[: len(nz)] = nz
+        r = r2
+
+        new_row = (
+            (r[0].astype(np.uint16) << 12)
+            | (r[1].astype(np.uint16) << 8)
+            | (r[2].astype(np.uint16) << 4)
+            | (r[3].astype(np.uint16) << 0)
+        )
+
+        return new_row, int(score), monotonicity
+
+
 class Simulator:
     def __init__(
         self,
-        id: int,
-        move_look_up_table: NDArray[np.uint16],
-        score_look_up_table: NDArray[np.object_],
+        idx: int,
+        look_up_table: LookupTable
     ):
-        self.idx = id
-        self.move_look_up_table = move_look_up_table
-        self.score_look_up_table = score_look_up_table
-        self.board = np.zeros(4, dtype=np.uint16)
+        self.idx = idx
+        self.look_up_table = look_up_table
         self.prev_board = np.zeros(4, dtype=np.uint16)
+        self.board = np.zeros(4, dtype=np.uint16)
+        self.prev_score = 0
         self.score = 0
         self.is_terminated = False
         self.valid_moves = Move.NOMOVE.value
-        self.rng = np.random.Random()
+        self.rng = random.Random()
         self.reset()
 
     def make_move(self, move: Move) -> None:
@@ -39,6 +90,7 @@ class Simulator:
         generates a random tile
         """
         self.prev_board = self.board.copy()
+        self.prev_score = self.score
         match (move):
             case Move.LEFT.value:
                 self.__move_left()
@@ -116,8 +168,8 @@ class Simulator:
         Sets the previous board to the current board, then shifts all cells in the current
         board left and merging where expected
         """
-        self.score += self.score_look_up_table[self.board].sum()
-        self.board[:] = self.move_look_up_table[self.board]
+        self.score += self.look_up_table.scores[self.board].sum()
+        self.board[:] = self.look_up_table.moves[self.board]
 
     def __move_right(self) -> None:
         """
@@ -125,8 +177,8 @@ class Simulator:
         board right and merging where expected
         """
         self.board = self.__reverse_board(self.board)
-        self.score += self.score_look_up_table[self.board].sum()
-        self.board[:] = self.move_look_up_table[self.board]
+        self.score += self.look_up_table.scores[self.board].sum()
+        self.board[:] = self.look_up_table.moves[self.board]
         self.board = self.__reverse_board(self.board)
 
     def __move_up(self) -> None:
@@ -135,8 +187,8 @@ class Simulator:
         board up and merging where expected
         """
         self.board = self.__transpose_board(self.board)
-        self.score += self.score_look_up_table[self.board].sum()
-        self.board[:] = self.move_look_up_table[self.board]
+        self.score += self.look_up_table.scores[self.board].sum()
+        self.board[:] = self.look_up_table.moves[self.board]
         self.board = self.__transpose_board(self.board)
 
     def __move_down(self) -> None:
@@ -146,8 +198,8 @@ class Simulator:
         """
         self.board = self.__transpose_board(self.board)
         self.board = self.__reverse_board(self.board)
-        self.score += self.score_look_up_table[self.board].sum()
-        self.board[:] = self.move_look_up_table[self.board]
+        self.score += self.look_up_table.scores[self.board].sum()
+        self.board[:] = self.look_up_table.moves[self.board]
         self.board = self.__reverse_board(self.board)
         self.board = self.__transpose_board(self.board)
 
@@ -232,48 +284,44 @@ class Simulator:
         arr64 = board.astype(np.uint64)
         return (arr64[0] << 48) | (arr64[1] << 32) | (arr64[2] << 16) | arr64[3]
 
-    def __get_reward(self, curr_board: NDArray[np.uint16], prev_board: NDArray[np.uint16]):
+    def __get_reward(self, current_board: NDArray[np.uint16], prev_board: NDArray[np.uint16]):
         """
         board: np.ndarray of shape (4,), dtype=np.uint16
         prev_board: np.ndarray of shape (4,), dtype=np.uint16
         Returns a reward value based on the current and previous board state
         Currently values: score delta, empty tiles, largest tile, largest tile is in a corner
         """
-        score_delta = self.score_look_up_table[prev_board].sum()
+        score_delta = self.score - self.prev_score
         # 2s into 4 yields ~2.3, 512s into 1024 yields ~11
         scaled_score = np.log2(score_delta + 1)  # log scaling
 
-        empty_delta = np.sum(curr_board == 0) - np.sum(prev_board == 0)
+        monotonicity = self.__compute_monotonicity(current_board)
 
-        # ranges between [0,24]
-        mono_delta = self.__compute_monotonicity(curr_board) - self.__compute_monotonicity(prev_board)
+        unpacked_prev = self.__unpack_board(prev_board)
+        unpacked_curr = self.__unpack_board(current_board)
+        empty_delta = np.sum(unpacked_curr == 0) - np.sum(unpacked_prev == 0)
 
-        max_tile = np.max(curr_board)
+
+        max_tile = np.max(unpacked_curr)
         corner_indices = [0, 3, 12, 15]  # flattened corners
         # max of 4
-        corner_bonus = 1.0 if any(curr_board[i]==max_tile for i in corner_indices) else 0.0
+        corner_bonus = 1.0 if any(unpacked_curr[i]==max_tile for i in corner_indices) else 0.0
 
         c_corner = 0.05  # Scaling factor for bonus for having max tile in corner
-        c_mono = 0.05   # Scaling factor for monotonicity
+        c_mono = 0.1   # Scaling factor for monotonicity
         c_empty = 0.05  # Scaling factor for empty tiles
-        reward = scaled_score + c_empty*empty_delta + c_mono*mono_delta + c_corner*corner_bonus
+        self.print_board()
+        print(f"Scaled score: {scaled_score}")
+        print(f"Empty heuristic: {c_empty * empty_delta}")
+        print(f"Monotonic heuristic: {c_mono * monotonicity}")
+        print(f"Corner heuristic: {c_corner * corner_bonus}")
+        reward = scaled_score + c_empty*empty_delta + c_mono*monotonicity + c_corner*corner_bonus
 
         return reward
 
 
     def __compute_monotonicity(self, board: NDArray[np.uint16]) -> float:
-        board = self.__unpack_board(board).reshape(4,4)
-
-        diff_lr = np.diff(board, axis=1)
-        diff_rl = -diff_lr
-        row_mono = np.sum(np.where(diff_lr <= 0, diff_lr, 0)) + np.sum(np.where(diff_rl <= 0, diff_rl, 0))
-
-        # Column differences
-        diff_ud = np.diff(board, axis=0)
-        diff_du = -diff_ud
-        col_mono = np.sum(np.where(diff_ud <= 0, diff_ud, 0)) + np.sum(np.where(diff_du <= 0, diff_du, 0))
-
-        return - (row_mono + col_mono)
+        return self.look_up_table.monotonicity[board].sum() + self.look_up_table.monotonicity[self.__transpose_board(board)].sum()
 
     def __get_valid_moves(self, board: np.ndarray) -> int:
         """
@@ -313,53 +361,3 @@ class Simulator:
         m2 = (t2 != 0) & (t2 == t3)
 
         return c0 | c1 | c2 | m0 | m1 | m2
-
-
-class LookupTable:
-    """
-    Generates a look up table for 2048, pre-computing all moves left and their score increases
-    """
-
-    def __init__(self):
-        move_count = 16**4
-        self.move_look_up_table = np.zeros(move_count, dtype=np.uint16)
-        self.score_look_up_table = np.zeros(move_count, dtype=int)
-        for i in np.arange(move_count, dtype=np.uint16):
-            self.move_look_up_table[i], self.score_look_up_table[i] = (
-                self.__shift_row_left(i)
-            )
-
-    def __shift_row_left(self, row: np.uint16) -> Tuple[np.uint16, int]:
-        r = np.array(
-            [(row >> 12) & 0xF, (row >> 8) & 0xF, (row >> 4) & 0xF, (row >> 0) & 0xF],
-            dtype=np.uint8,
-        )
-
-        nz = r[r != 0]
-        compact = np.zeros(4, np.uint8)
-        compact[: len(nz)] = nz
-        r = compact
-
-        score = 0
-        merged = np.zeros(4, np.bool_)
-
-        for i in range(1, 4):
-            if r[i] != 0 and r[i] == r[i - 1] and not merged[i - 1]:
-                r[i - 1] += 1
-                r[i] = 0
-                merged[i - 1] = True
-                score += 1 << int(r[i - 1])
-
-        nz = r[r != 0]
-        r2 = np.zeros(4, np.uint8)
-        r2[: len(nz)] = nz
-        r = r2
-
-        new_row = (
-            (r[0].astype(np.uint16) << 12)
-            | (r[1].astype(np.uint16) << 8)
-            | (r[2].astype(np.uint16) << 4)
-            | (r[3].astype(np.uint16) << 0)
-        )
-
-        return new_row, int(score)
