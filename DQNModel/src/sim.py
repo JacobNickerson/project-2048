@@ -1,9 +1,9 @@
 import random
 from enum import Enum
 from typing import Tuple
+
 import numpy as np
 from numpy.typing import NDArray
-from src.buffer import Experience
 
 
 class Move(Enum):
@@ -25,8 +25,8 @@ class LookupTable:
         self.scores = np.zeros(move_count, dtype=int)
         self.monotonicity = np.zeros(move_count, dtype=float)
         for i in np.arange(move_count, dtype=np.uint16):
-            self.moves[i], self.scores[i], self.monotonicity[i] = (
-                self.__shift_row_left(i)
+            self.moves[i], self.scores[i], self.monotonicity[i] = self.__shift_row_left(
+                i
             )
 
     def __shift_row_left(self, row: np.uint16) -> Tuple[np.uint16, int]:
@@ -67,11 +67,11 @@ class LookupTable:
 
 
 class Simulator:
-    def __init__(
-        self,
-        idx: int,
-        look_up_table: LookupTable
-    ):
+    """
+    Python-based 2048 simulator
+    """
+
+    def __init__(self, idx: int, look_up_table: LookupTable):
         self.idx = idx
         self.look_up_table = look_up_table
         self.prev_board = np.zeros(4, dtype=np.uint16)
@@ -122,7 +122,7 @@ class Simulator:
         self.__populate_random_cell(self.board)
         self.valid_moves = self.__get_valid_moves(self.board)
 
-    def get_experience(self) -> Experience:
+    def get_experience(self) -> np.ndarray:
         """
         Returns a tuple of form: (ID, Current state, Previous State, Valid Moves, Reward, Terminated)
         """
@@ -147,13 +147,16 @@ class Simulator:
         """
         return self.score
 
-    def print_board(self) -> None:
+    def print_board(self, in_place=True) -> None:
         """
         Prints the current board state to the terminal
         """
         cells = self.__unpack_board(self.board)
         cells = np.array([0 if cell == 0 else 1 << cell for cell in cells])
         print(cells.reshape((4, 4)))
+        if in_place:
+            print("\033[4A", end="")
+            print("\033[10D", end="")
 
     def get_board(self, packed=False):
         """
@@ -267,7 +270,7 @@ class Simulator:
         col = flat_pos % 4
 
         # NOTE: Varying the rng for tile spawn, randomly, to avoid overfitting to fixed spawn rates
-        val = 2 if self.rng.random() < 0.88 + 0.04*self.rng.random() else 4
+        val = 2 if self.rng.random() < 0.88 + 0.04 * self.rng.random() else 4
 
         shift = (3 - col) * 4
         board[row] |= np.uint16((val.bit_length() - 1) << shift)
@@ -300,18 +303,16 @@ class Simulator:
         e_scale = 0.1  # scalar for empty reward
         t_scale = 5.0  # scalar for terminal states
 
-        reward = np.log2(1+(self.score - self.prev_score))
+        reward = np.log2(1 + (self.score - self.prev_score))
         reward += m_scale * np.log2(max_val)
-        reward += c_scale if np.any(max_val == cells[i] for i in [0,3,12,15]) else 0.0
+        reward += (
+            c_scale if np.any(max_val == cells[i] for i in [0, 3, 12, 15]) else 0.0
+        )
         reward += e_scale * empty_count
 
         if self.is_terminated:
             reward -= t_scale
         return reward
-
-
-    def __compute_monotonicity(self, board: NDArray[np.uint16]) -> float:
-        return self.look_up_table.monotonicity[board].sum() + self.look_up_table.monotonicity[self.__transpose_board(board)].sum()
 
     def __get_valid_moves(self, board: np.ndarray) -> int:
         """

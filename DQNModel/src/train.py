@@ -1,8 +1,10 @@
+from time import time
+
 import numpy as np
+
 from src.agent import DQNAgent
 from src.env_manager import CPPEnvManager, PyEnvManager
 from src.utils import unpack_64bit_state
-from time import time
 
 
 def train_dqn(
@@ -58,7 +60,7 @@ def train_dqn(
             states[env_idx] = result
             needs_action[env_idx] = True  # mark this env as needing an action
 
-        if step_count % update_every*num_envs == 0:
+        if step_count % update_every * num_envs == 0:
             agent.update()
 
         if step_count >= num_envs * 1000:
@@ -87,8 +89,9 @@ def train_python_dqn(
 ):
     epsilon_end = 0.05
     epsilon_step_decay = 50_000_000
+
     def get_epsilon(step):
-        eps = max(epsilon_end,epsilon-step/epsilon_step_decay)
+        eps = max(epsilon_end, epsilon - step / epsilon_step_decay)
         return eps
 
     episode = 0
@@ -99,7 +102,9 @@ def train_python_dqn(
     results = env_manager.reset_all()
     states, valid_moves = results["state"], results["moves"]
     while episode < episode_count:
-        actions = agent.select_actions_batch(states, get_epsilon(total_steps), valid_moves)
+        actions = agent.select_actions_batch(
+            states, get_epsilon(total_steps), valid_moves
+        )
 
         env_manager.write_actions(actions)
         results = env_manager.poll_results()
@@ -126,7 +131,7 @@ def train_python_dqn(
                 episode += 1
                 print(f"episodes: {episode}")
 
-        if total_steps % (num_envs*update_every) == 0 and agent.update():
+        if total_steps % (num_envs * update_every) == 0 and agent.update():
             gradient_updates += 1
 
         if gradient_updates >= 50000:

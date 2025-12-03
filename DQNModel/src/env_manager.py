@@ -1,17 +1,17 @@
+import threading
+import time
+import http.server
+import socketserver
+
 import numpy as np
-from src.sim import Simulator, LookupTable, Move
-from src.PySharedMemoryInterface import SharedMemoryInterface  # type: ignore
-from src.buffer import Experience
 from numpy.typing import NDArray
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-import threading
-import time
-from os import path
-import http.server
-import socketserver
+
+from src.sim import Simulator, LookupTable, Move
+from src.PySharedMemoryInterface import SharedMemoryInterface  # type: ignore
 
 message_dtype = np.dtype(
     [
@@ -35,6 +35,10 @@ pymessage_dtype = np.dtype(
 
 
 class CPPEnvManager:
+    """
+    Environment manager interacting with C++ processes through shared memory
+    """
+
     def __init__(self, num_envs: int):
         self.num_envs = num_envs
         self.shm = SharedMemoryInterface()
@@ -86,15 +90,16 @@ class CPPEnvManager:
 
 # A smarter man would make these two classes inherit an interface or something
 class PyEnvManager:
+    """
+    Environment manager running serial python simulations
+    """
+
     def __init__(self, num_envs: int):
         self.num_envs = num_envs
         self.look_up_table = LookupTable()
         self.envs = np.empty(num_envs, dtype=object)
         for i in range(self.num_envs):
-            self.envs[i] = Simulator(
-                i,
-                self.look_up_table
-            )
+            self.envs[i] = Simulator(i, self.look_up_table)
 
     def write_actions(self, actions):
         """
@@ -119,15 +124,17 @@ class PyEnvManager:
             env.reset()
         return self.poll_results()
 
-    def reset(self, idx: int) -> Experience:
+    def reset(self, idx: int) -> np.ndarray:
         self.envs[idx].reset()
         return self.envs[idx].get_experience()
-        # return np.array([self.envs[idx].get_experience()], dtype=pymessage_dtype)
+
 
 class WebEnvManager:
     """
+    Manager running a web server and javascript based 2048
     Only intended for use with run model, does not include training data like reward
     """
+
     def __init__(self):
         # starting 2048 fork
         self.port = 57575
@@ -162,7 +169,7 @@ class WebEnvManager:
         return self.valid_moves
 
     def write_action(self, move):
-        match(move):
+        match (move):
             case Move.UP.value:
                 move = Keys.ARROW_UP
             case Move.DOWN.value:
@@ -184,19 +191,19 @@ class WebEnvManager:
         return window.getBoard()
         """
         self.board = np.array(self.driver.execute_script(js))
-        
+
         # update valid moves
         self.valid_moves = self.__get_valid_moves(self.board)
         self.is_terminated = self.valid_moves == 0
 
     def __get_valid_moves(self, board: np.ndarray) -> int:
-        temp_board = np.array(board).reshape(4,4)
+        temp_board = np.array(board).reshape(4, 4)
         valid_moves = 0
 
         def can_move_left(b):
             for row in b:
-                for i in range(1,4):
-                    if row[i] != 0 and (row[i-1] == 0 or row[i-1] == row[i]):
+                for i in range(1, 4):
+                    if row[i] != 0 and (row[i - 1] == 0 or row[i - 1] == row[i]):
                         return True
             return False
 
@@ -219,7 +226,7 @@ class WebEnvManager:
             valid_moves |= Move.DOWN.value
 
         return valid_moves
-        
+
     def __start_server(self, port):
         handler_class = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
             *args, directory="../2048-web", **kwargs
@@ -229,7 +236,9 @@ class WebEnvManager:
             daemon_threads = True
 
         self.server = ThreadedHTTPServer(("", port), handler_class)
-        self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.server_thread = threading.Thread(
+            target=self.server.serve_forever, daemon=True
+        )
         self.server_thread.start()
         print("Starting web server")
         time.sleep(1)

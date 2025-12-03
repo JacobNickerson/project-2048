@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras import optimizers  # type: ignore
+
 from src.model import DQN, DuelingDQN
 from src.buffer import ReplayBuffer
 from src.utils import unpack_64bit_state
@@ -32,8 +33,7 @@ class DQNAgent:
             self.target_network(dummy)
 
         self.optimizer: optimizers.Optimizer = optimizers.Adam(
-            learning_rate=lr,
-            clipnorm=5.0
+            learning_rate=lr, clipnorm=5.0
         )
         self.replay_buffer: ReplayBuffer = ReplayBuffer(buffer_capacity, (state_dim,))
 
@@ -53,21 +53,17 @@ class DQNAgent:
         ):  # no valid moves, game ended, shouldn't ever happen because ended games will restart before calling this
             raise ValueError("HOW")
 
-        # Convert bitflags to indices
         valid_actions_arr = np.flatnonzero(
             [(valid_actions >> i) & 1 for i in range(self.action_dim)]
         )
 
-        # Epsilon-greedy
         if np.random.rand() < epsilon:
             return 1 << np.random.choice(valid_actions_arr)
 
-        # Forward pass
         state_tensor = tf.convert_to_tensor(state[None, :], dtype=tf.float32)
         with tf.device("/GPU:0"):
             q_values = self.q_network(state_tensor)[0].numpy()
 
-        # Mask invalid actions
         mask = np.full_like(q_values, -np.inf)
         mask[valid_actions_arr] = q_values[valid_actions_arr]
 
@@ -119,6 +115,9 @@ class DQNAgent:
         return actions
 
     def update(self) -> bool:
+        """
+        Updates the model gradients
+        """
         if self.replay_buffer.size < self.batch_size:
             return False
 
@@ -139,6 +138,9 @@ class DQNAgent:
 
     @tf.function
     def __update_step(self, states, next_states, actions, rewards, dones) -> None:
+        """
+        Helper function for gradient updates, separates all tensorflow functions into a single function for GPU utilization
+        """
         next_action = tf.cast(tf.argmax(self.q_network(next_states), axis=1), tf.int32)
         next_q_target = tf.gather(
             self.target_network(next_states), next_action, batch_dims=1
@@ -154,12 +156,18 @@ class DQNAgent:
         grads = tape.gradient(loss, self.q_network.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.q_network.trainable_variables))
 
-
     def sync_target_network(self) -> None:
+        """
+        Syncs the model's target network with its q-network
+        """
         self.target_network.set_weights(self.q_network.get_weights())
 
 
 class RandomAgent:
+    """
+    Agent that supplies random moves
+    """
+
     def __init__(self, state_dim: int, action_dim: int):
         self.action_dim = action_dim
         self.state_dim = state_dim
@@ -174,17 +182,21 @@ class RandomAgent:
         ]
         return 1 << np.random.choice(valid_actions_arr)
 
+
 class UserAgent:
+    """
+    Agent that gets moves from user input in the terminal
+    """
+
     def __init__(self):
         self.valid_moves = 0
 
     def select_action(
-            self, state: np.ndarray, epsilon: float, valid_actions: int  
+        self, state: np.ndarray, epsilon: float, valid_actions: int
     ) -> int:
         if (valid_actions & 0b00010000) > 0:  # no valid moves, game is ended
             return 0b00010000
         # lmao this is so bad
-        print(f"valid: {format(valid_actions,"04b")}")
         print(
             f"Valid moves: {'W' if valid_actions & Move.UP.value else 'X'}{'A' if valid_actions & Move.LEFT.value else 'X'}{'S' if valid_actions & Move.DOWN.value else 'X'}{'D' if valid_actions & Move.RIGHT.value else 'X'}"
         )

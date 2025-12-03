@@ -1,24 +1,16 @@
 #!/usr/bin/env python3
 
+from argparse import ArgumentParser
+
 import tensorflow as tf
 import numpy as np
-from argparse import ArgumentParser
+
 from src.agent import DQNAgent, RandomAgent, UserAgent
 from src.env_manager import CPPEnvManager, PyEnvManager, WebEnvManager
-from src.play import play_dqn, play_py_dqn, play_user_dqn, play_web_dqn
+from src.play import play_dqn, play_py_dqn, play_web_dqn
 
 
 def main():
-    gpus = tf.config.list_physical_devices("GPU")
-    if gpus:
-        tf.config.experimental.set_memory_growth(gpus[0], True)
-        print("Using GPU")
-    else:
-        print("GPU not detected")
-
-    STATE_DIM = 16
-    ACTION_DIM = 4
-
     parser = ArgumentParser()
     parser.add_argument(
         "--input",
@@ -32,16 +24,19 @@ def main():
         "--network",
         type=str,
         required=False,
-        help="Path to the common base of the network weights files",
+        help="Path to the common base of the network weights files, only valid if input type is network",
     )
     parser.add_argument(
-        "--q-network", type=str, required=False, help="Path to the q-network file"
+        "--q-network",
+        type=str,
+        required=False,
+        help="Path to the q-network file, only valid if input type is network and must be passed along with --target-network",
     )
     parser.add_argument(
         "--target-network",
         type=str,
         required=False,
-        help="Path to the target network file",
+        help="Path to the target network file, only valid if input type is network and must be passed along with --q-network",
     )
     parser.add_argument(
         "--average-runs",
@@ -50,6 +45,16 @@ def main():
         help="Optionally run many runs and collect averages",
     )
     args = parser.parse_args()
+    gpus = tf.config.list_physical_devices("GPU")
+    if gpus:
+        tf.config.experimental.set_memory_growth(gpus[0], True)
+        print("Using GPU")
+    else:
+        print("GPU not detected")
+
+    STATE_DIM = 16
+    ACTION_DIM = 4
+
     input_method = args.input
 
     match (input_method):
@@ -92,7 +97,7 @@ def main():
                 play_py_dqn(agent, env)
                 print("RESULTS")
                 print("END STATE: ")
-                env.print_board()
+                env.print_board(False)
                 print(f"SCORE: {env.score}")
             else:
                 print(f"Averaging across {args.average_runs}")

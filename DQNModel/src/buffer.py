@@ -1,15 +1,12 @@
-from typing import Tuple
 import numpy as np
-from src.utils import unpack_64bit_state
-
-State = int
-Action = int
-Reward = float
-Done = bool
-Experience = Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+from typing import Tuple
 
 
 class ReplayBuffer:
+    """
+    Buffer for sampling previous experiences
+    """
+
     def __init__(self, capacity: int, state_shape: Tuple[int, ...]) -> None:
         self.capacity: int = capacity
         self.state_shape: Tuple[int, ...] = state_shape
@@ -25,11 +22,11 @@ class ReplayBuffer:
 
     def add(
         self,
-        state: State,
-        action: Action,
-        reward: Reward,
-        next_state: State,
-        done: bool,
+        state: np.ndarray,
+        action: np.ndarray,
+        reward: np.ndarray,
+        next_state: np.ndarray,
+        done: np.ndarray,
     ) -> None:
         self.states[self.idx] = state
         self.actions[self.idx] = action
@@ -39,7 +36,7 @@ class ReplayBuffer:
         self.idx = (self.idx + 1) % self.capacity
         self.size = min(self.size + 1, self.capacity)
 
-    def sample(self, batch_size: int) -> Experience:
+    def sample(self, batch_size: int) -> np.ndarray:
         idxs = np.random.choice(self.size, batch_size, replace=False)
         return (
             self.states[idxs],

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 from argparse import ArgumentParser
+
 import tensorflow as tf
+
 from src.agent import DQNAgent
 from src.env_manager import CPPEnvManager, PyEnvManager
 from src.train import train_dqn, train_python_dqn
@@ -33,7 +35,7 @@ def main():
         buffer_capacity=10_000_000,
         batch_size=512,
         lr=3e-5,
-        gamma=0.99
+        gamma=0.99,
     )
     match (args.env_type):
         case "py":

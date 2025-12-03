@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+from argparse import ArgumentParser
+
 import matplotlib.pyplot as plt
 import numpy as np
-from argparse import ArgumentParser
 
 
 def read_file(file_name: str) -> tuple[list[int], list[int], list[list[int]]]:
