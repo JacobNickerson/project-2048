@@ -1,3 +1,4 @@
+from time import sleep
 from src.agent import DQNAgent
 from src.env_manager import CPPEnvManager, PyEnvManager, WebEnvManager
 from src.sim import Simulator, LookupTable, Move
@@ -32,7 +33,7 @@ def play_py_dqn(agent: DQNAgent, env: PyEnvManager):
 def play_user_dqn():
     look_up_table = LookupTable()
     sim = Simulator(
-        0, look_up_table.moves, look_up_table.scores
+        0, look_up_table 
     )
     while True:
         sim.print_board()
@@ -68,19 +69,22 @@ def play_user_dqn():
 def play_web_dqn(agent: DQNAgent, env: WebEnvManager):
     action_count = 0
     while True:
-        print("getting board")
-        board = env.get_board()
-        print("getting moves")
-        moves = env.get_valid_moves()
-        print(board.reshape(4,4))
-        print(format(moves,"04b"))
-        print("selecting")
-        action = agent.select_action(
-            env.get_board(), 0, env.get_valid_moves()
-        )
-        print(f"writing {format(action, "05b")}")
-        env.write_action(action)
-        action_count += 1
-        if env.is_terminated:
+        try:
+            board = env.get_board()
+            moves = env.get_valid_moves()
+            print(board.reshape(4,4))
+            print(format(moves,"04b"))
+            action = agent.select_action(
+                env.get_board(), 0, env.get_valid_moves()
+            )
+            print(f"Sending {format(action, "05b")}")
+            env.write_action(action)
+            action_count += 1
+            if env.is_terminated:
+                break
+        except KeyboardInterrupt:
             break
     print("Game over!")
+    print("Shutting down server")
+    sleep(3)
+    env.shut_down()

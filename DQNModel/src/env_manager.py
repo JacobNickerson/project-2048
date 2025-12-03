@@ -7,7 +7,11 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+import threading
 import time
+from os import path
+import http.server
+import socketserver
 
 message_dtype = np.dtype(
     [
@@ -125,15 +129,31 @@ class WebEnvManager:
     Only intended for use with run model, does not include training data like reward
     """
     def __init__(self):
+        # starting 2048 fork
+        self.port = 57575
+        self.server = None
+        self.server_thread = None
+        self.__start_server(self.port)
+        # let the server cook.
+
         self.driver = webdriver.Chrome()
-        self.driver.get("https://2048game.com")
-        self.driver.implicitly_wait(5)
+        self.driver.get(f"http://localhost:{self.port}/")
+        # Wait until GameManager is ready
+        while not self.driver.execute_script("return !!window.gm;"):
+            time.sleep(0.1)
         self.game_element = self.driver.find_element("tag name", "body")
         self.board = np.zeros(16)
         self.valid_moves = 0
         self.is_terminated = False
         self.__update_board()
 
+    def shut_down(self):
+        if self.server:
+            self.server.shutdown()
+            self.server_thread.join()
+            self.server = None
+            self.server_thread = None
+        self.driver.quit()
 
     def get_board(self):
         return self.board
@@ -161,14 +181,9 @@ class WebEnvManager:
     def __update_board(self):
         # get board
         js = """
-        let s = localStorage.getItem("gameState");
-        return s ? JSON.parse(s) : null;
+        return window.getBoard()
         """
-        state = None
-        while state is None:
-            state = self.driver.execute_script(js)
-        state = state["grid"]["cells"]
-        self.board = self.__convert_state(state)
+        self.board = np.array(self.driver.execute_script(js))
         
         # update valid moves
         self.valid_moves = self.__get_valid_moves(self.board)
@@ -195,21 +210,27 @@ class WebEnvManager:
             return can_move_right(b.T)
 
         if can_move_left(temp_board):
-            valid_moves |= 0b00000001
+            valid_moves |= Move.LEFT.value
         if can_move_right(temp_board):
-            valid_moves |= 0b00000010
+            valid_moves |= Move.RIGHT.value
         if can_move_up(temp_board):
-            valid_moves |= 0b00000100
+            valid_moves |= Move.UP.value
         if can_move_down(temp_board):
-            valid_moves |= 0b00001000
+            valid_moves |= Move.DOWN.value
 
         return valid_moves
         
-    def __convert_state(self, state):
-        board = np.zeros(16, dtype=np.uint32)
-        for row in state:
-            for cell in row:
-                if cell:
-                    pos, val = cell['position'], cell['value']
-                    board[pos['x']+4*pos['y']] = val
-        return board
+    def __start_server(self, port):
+        handler_class = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(
+            *args, directory="../2048-web", **kwargs
+        )
+
+        class ThreadedHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+            daemon_threads = True
+
+        self.server = ThreadedHTTPServer(("", port), handler_class)
+        self.server_thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.server_thread.start()
+        print("Starting web server")
+        time.sleep(1)
+        print(f"Serving at http://localhost:{port}")
