@@ -47,6 +47,7 @@
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#contributors">Contributors</a></li>
     <li><a href="#acknowledgments">Acknowledgements</a></li>
+    <li><a href="#results">Results</a></li>
     <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
@@ -169,6 +170,18 @@ See the [open issues](https://github.com/JacobNickerson/project-2048/issues) for
 * [2048](https://github.com/gabrielecirulli/2048) Web environment powered with a modified fork of the original 2048.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- RESULTS -->
+## Results
+Below are some benchmarks from averaged across 500 runs for the best performing model (saved in `DQNModel/models`):
+
+<img src="DQNModel/graphs/avg_score_vs_steps_bar.png" alt="Average score vs training steps">
+<img src="DQNModel/graphs/high_score_vs_steps_bar.png" alt="High score vs training steps">
+<img src="DQNModel/graphs/med_score_vs_steps_bar.png" alt="Median score vs training steps">
+<img src="DQNModel/graphs/med_tile_vs_steps_bar.png" alt="Average score vs training steps">
+<img src="DQNModel/graphs/high_tile_vs_steps_bar.png" alt="Average score vs training steps">
+
+More specific data can be found in `DQNModel/graphs` and `DQNModel/raw_data`.
 
 <!-- CONTACT -->
 ## Contact
